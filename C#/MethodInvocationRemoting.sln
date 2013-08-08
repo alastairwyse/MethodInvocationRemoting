@@ -1,0 +1,57 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 9.00
+# Visual Studio 2005
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MethodInvocationRemoting", "MethodInvocationRemoting\MethodInvocationRemoting.csproj", "{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MethodInvocationRemotingUnitTests", "MethodInvocationRemotingUnitTests\MethodInvocationRemotingUnitTests.csproj", "{DB7F0B70-3452-4C50-946E-9482C37FD966}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Referenced Libraries", "Referenced Libraries", "{C459D542-4093-4CA6-9864-1441D09B8846}"
+	ProjectSection(SolutionItems) = preProject
+		Referenced Libraries\Apache.NMS.ActiveMQ.dll = Referenced Libraries\Apache.NMS.ActiveMQ.dll
+		Referenced Libraries\Apache.NMS.dll = Referenced Libraries\Apache.NMS.dll
+		Referenced Libraries\NMock2.dll = Referenced Libraries\NMock2.dll
+		Referenced Libraries\nunit.framework.dll = Referenced Libraries\nunit.framework.dll
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution Items", "{4F3E04A0-6DEF-4AB6-BEBC-C691C83C9345}"
+	ProjectSection(SolutionItems) = preProject
+		SolutionInfo.cs = SolutionInfo.cs
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApplication1", "SampleApplication1\SampleApplication1.csproj", "{2673FB46-3170-4A15-8E95-38D940D05881}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApplication2", "SampleApplication2\SampleApplication2.csproj", "{9F44553F-D82D-4089-BBBF-D36D619CB65B}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleApplication3", "SampleApplication3\SampleApplication3.csproj", "{1ED037F7-8AC0-4F0F-BF89-466542FD91FD}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DB7F0B70-3452-4C50-946E-9482C37FD966}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DB7F0B70-3452-4C50-946E-9482C37FD966}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DB7F0B70-3452-4C50-946E-9482C37FD966}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DB7F0B70-3452-4C50-946E-9482C37FD966}.Release|Any CPU.Build.0 = Release|Any CPU
+		{2673FB46-3170-4A15-8E95-38D940D05881}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2673FB46-3170-4A15-8E95-38D940D05881}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2673FB46-3170-4A15-8E95-38D940D05881}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2673FB46-3170-4A15-8E95-38D940D05881}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9F44553F-D82D-4089-BBBF-D36D619CB65B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9F44553F-D82D-4089-BBBF-D36D619CB65B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9F44553F-D82D-4089-BBBF-D36D619CB65B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9F44553F-D82D-4089-BBBF-D36D619CB65B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1ED037F7-8AC0-4F0F-BF89-466542FD91FD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1ED037F7-8AC0-4F0F-BF89-466542FD91FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1ED037F7-8AC0-4F0F-BF89-466542FD91FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1ED037F7-8AC0-4F0F-BF89-466542FD91FD}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal

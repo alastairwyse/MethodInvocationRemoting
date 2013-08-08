@@ -1,0 +1,237 @@
+<?xml version="1.0"?>
+<!-- Comments for all interfaces and interface methods are included in this common file, so that the same comments can be used by the interfaces, and the classes that implement them -->
+<doc>
+    <assembly>
+        <name>MethodInvocationRemoting</name>
+    </assembly>
+    <members>
+        <member name="T:MethodInvocationRemoting.ISerializerOperationMap">
+            <summary>
+            Defines methods to store mappings between a native .NET System.Type object, the type serialized as a string, and the operations to serialize and deserialize objects of that type.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.AddMapping(System.Type,System.String,MethodInvocationRemoting.XmlSerializationOperation,MethodInvocationRemoting.XmlDeserializationOperation)">
+            <summary>
+            Adds a mapping.
+            </summary>
+            <param name="nativeType">The native .NET type in the mapping.</param>
+            <param name="serializedType">A string representation of the type.</param>
+            <param name="serializationOperation">A method which serializes objects of the type.</param>
+            <param name="deserializationOperation">A method which deserializes objects of the type.</param>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.UpdateMapping(System.Type,System.String,MethodInvocationRemoting.XmlSerializationOperation,MethodInvocationRemoting.XmlDeserializationOperation)">
+            <summary>
+            Updates (i.e. replaces) an existing mapping.
+            </summary>
+            <param name="nativeType">The native .NET type in the mapping.</param>
+            <param name="serializedType">A string representation of the type.</param>
+            <param name="serializationOperation">A method which serializes objects of the type.</param>
+            <param name="deserializationOperation">A method which deserializes objects of the type.</param>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.GetSerializedType(System.Type)">
+            <summary>
+                Retrieves the string representation of a type, based on the inputted native type.
+            </summary>
+            <param name="nativeType">The native type to return the string representation for.</param>
+            <returns>The type represented as a string.  Contains null if no mapping entry was found for the native type.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.GetNativeType(System.String)">
+            <summary>
+                Retrieves a native .NET type, based on the inputted string representation of the type.
+            </summary>
+            <param name="serializedType">The string representation of the native type.</param>
+            <returns>The corresponding native type.  Contains null if no mapping entry was found for the string representation.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.GetSerializationOperation(System.Type)">
+            <summary>
+            Retrieves the operation to serialize the type to XML.
+            </summary>
+            <param name="nativeType">The native type to return the operation for.</param>
+            <returns>The corresponding serialization operation.  Contains null if no mapping entry was found for the native type.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.ISerializerOperationMap.GetDeserializationOperation(System.String)">
+            <summary>
+            Retrieves the operation to deserialize the type from XML.
+            </summary>
+            <param name="serializedType">The serialized type to return the operation for.</param>
+            <returns>The corresponding deserialization operation.  Contains null if no mapping entry was found for the serialized type.</returns>
+        </member>
+        <member name="T:MethodInvocationRemoting.IMethodInvocationRemoteReceiver">
+            <summary>
+            Defines methods to receive method invocations (represented by MethodInvocationRemoting.IMethodInvocation objects) from remote locations.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.Receive">
+            <summary>
+            Starts an asynchronous operation to receive method invocations.  Clients should subscribe to the MethodInvocationReceived event to receive the method invocations.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendReturnValue(System.Object)">
+            <summary>
+            Passes the return value of the method invocation to the sender, after the method invocation has been completed.
+            </summary>
+            <param name="ReturnValue">The return value.</param>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendVoidReturn">
+            <summary>
+            Notifies the sender that the method invocation has been completed, in the case of a void method.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.CancelReceive">
+            <summary>
+            Stops the operation to receive method invocations.
+            </summary>
+        </member>
+        <member name="E:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.MethodInvocationReceived">
+            <summary>
+            Occurs when a message is received.
+            </summary>
+        </member>
+        <member name="T:MethodInvocationRemoting.IMethodInvocationSerializer">
+            <summary>
+            Defines methods which allow for serializing and deserializing of MethodInvocationRemoting.IMethodInvocation objects.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Serialize(MethodInvocationRemoting.IMethodInvocation)">
+            <summary>
+            Serializes a method invocation.
+            </summary>
+            <param name="inputMethodInvocation">The method invocation to serialize.</param>
+            <returns>The serialized method invocation.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Deserialize(System.String)">
+            <summary>
+            Deserializes a method invocation.
+            </summary>
+            <param name="serializedMethodInvocation">The serialized method invocation to deserialize.</param>
+            <returns>The method invocation.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationSerializer.SerializeReturnValue(System.Object)">
+            <summary>
+            Serializes the return value of a method invocation.
+            </summary>
+            <param name="inputReturnValue">The return value to serialize.</param>
+            <returns>The serialized return value.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationSerializer.DeserializeReturnValue(System.String)">
+            <summary>
+            Deserializes the return value of a method invocation.
+            </summary>
+            <param name="serializedReturnValue">The serialized return value to deserialize.</param>
+            <returns>The return value.</returns>
+        </member>
+        <member name="P:MethodInvocationRemoting.IMethodInvocationSerializer.VoidReturnValue">
+            <summary>
+            The serialized representation of a void return value.
+            </summary>
+        </member>
+        <member name="T:MethodInvocationRemoting.IRemoteReceiver">
+            <summary>
+            Defines methods which allow for receiving messages from a remote location.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IRemoteReceiver.Receive">
+            <summary>
+            Receives a message.
+            </summary>
+            <returns>The message received.</returns>
+            <remarks>Receive operation should be synchronous, i.e. should not return control to the client until a message has been received.  If a message is not available, the receive operation should wait (block) until a message becomes available, and then receive it.  Method should return a blank string in the case that the operation is cancelled before a message is received.</remarks>
+        </member>
+        <member name="M:MethodInvocationRemoting.IRemoteReceiver.CancelReceive">
+            <summary>
+            Cancels the receive operation in the case the receiver is waiting for a message.
+            </summary>
+            <remarks>Must be called by a separate thread to the thread that called Receive().</remarks>
+        </member>
+        <member name="T:MethodInvocationRemoting.IRemoteSender">
+            <summary>
+            Defines methods which allow for sending messages to a remote location.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IRemoteSender.Send(System.String)">
+            <summary>
+            Sends a message.
+            </summary>
+            <param name="message">The message to send.</param>
+            <remarks>Send operation should be synchronous, i.e. should not return control to the client until the message has been sent.</remarks>
+        </member>
+        <member name="T:MethodInvocationRemoting.IMethodInvocation">
+            <summary>
+            Container for properties of a method and the parameters used when the method is called or invoked.
+            </summary>
+        </member>
+        <member name="P:MethodInvocationRemoting.IMethodInvocation.Name">
+            <summary>
+            The name of the method.
+            </summary>
+        </member>
+        <member name="P:MethodInvocationRemoting.IMethodInvocation.Parameters">
+            <summary>
+            The parameters sent when the method is invoked.
+            </summary>
+        </member>
+        <member name="P:MethodInvocationRemoting.IMethodInvocation.ReturnType">
+            <summary>
+            The return type of the method.
+            </summary>
+        </member>
+        <member name="T:MethodInvocationRemoting.IMethodInvocationRemoteSender">
+            <summary>
+            Defines methods to send method invocations (represented by MethodInvocationRemoting.IMethodInvocation objects) to remote locations.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteSender.InvokeMethod(MethodInvocationRemoting.IMethodInvocation)">
+            <summary>
+            Invokes a method remotely.
+            </summary>
+            <param name="inputMethodInvocation">The method to invoke.</param>
+            <returns>The value returned from invoking the method.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteSender.InvokeVoidMethod(MethodInvocationRemoting.IMethodInvocation)">
+            <summary>
+            Invokes a void method remotely.
+            </summary>
+            <param name="inputMethodInvocation">The method to invoke.</param>
+        </member>
+        <member name="T:MethodInvocationRemoting.IFile">
+            <summary>
+                Represents a file within the file system.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IFile.ReadAll">
+            <summary>
+                Reads the entire contents of the file as a string.
+            </summary>
+            <returns>The contents of the file.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IFile.WriteAll(System.String)">
+            <summary>
+                Overwrites the entire contents of the file with the specified string.
+            </summary>
+            <param name="data">The data to write to the file.</param>
+        </member>
+        <member name="P:MethodInvocationRemoting.IFile.Path">
+            <summary>
+                The full path to the file.
+            </summary>
+        </member>
+        <member name="T:MethodInvocationRemoting.IFileSystem">
+            <summary>
+                Represents the file system.
+            </summary>
+        </member>
+        <member name="M:MethodInvocationRemoting.IFileSystem.CheckFileExists(System.String)">
+            <summary>
+                Checks whether a file at the given path exists in the file system.
+            </summary>
+            <param name="path">The full path to the file.</param>
+            <returns>Whether the specified file exists.</returns>
+        </member>
+        <member name="M:MethodInvocationRemoting.IFileSystem.DeleteFile(System.String)">
+            <summary>
+                Deletes the file specified by the given path.
+            </summary>
+            <param name="path">The full path to the file.</param>
+        </member>
+    </members>
+</doc>

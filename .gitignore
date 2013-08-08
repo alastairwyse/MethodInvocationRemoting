@@ -1,0 +1,30 @@
+# Documentation folder
+Documentation/
+
+# C# Exclusions
+*.suo
+C\#/MethodInvocationRemoting/bin/
+C\#/MethodInvocationRemoting/obj/
+C\#/MethodInvocationRemotingUnitTests/bin/
+C\#/MethodInvocationRemotingUnitTests/obj/
+C\#/SampleApplication1/bin/
+C\#/SampleApplication1/obj/
+C\#/SampleApplication2/bin/
+C\#/SampleApplication2/obj/
+C\#/SampleApplication3/bin/
+C\#/SampleApplication3/obj/
+
+# C# File classes
+C\#/MethodInvocationRemoting/File.cs
+C\#/MethodInvocationRemoting/FileSystem.cs
+C\#/MethodInvocationRemoting/IFile.cs
+C\#/MethodInvocationRemoting/IFileSystem.cs
+
+# Java Exclusions
+Java/MethodInvocationRemoting/bin/
+Java/MethodInvocationRemoting/doc/
+Java/MethodInvocationRemotingUnitTests/bin/
+Java/MethodInvocationRemotingUnitTests/doc/
+Java/SampleApplication1/bin/
+Java/SampleApplication2/bin/
+Java/SampleApplication3/bin/
