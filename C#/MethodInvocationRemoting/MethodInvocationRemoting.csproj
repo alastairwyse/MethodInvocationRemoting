@@ -18,7 +18,7 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>bin\Debug\MethodInvocationRemoting.XML</DocumentationFile>
+    <DocumentationFile>bin\Debug\MethodInvocationRemoting.xml</DocumentationFile>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugType>pdbonly</DebugType>
@@ -51,6 +51,8 @@
     <Compile Include="ActiveMqRemoteReceiver.cs" />
     <Compile Include="ActiveMqRemoteSender.cs" />
     <Compile Include="DeserializationException.cs" />
+    <Compile Include="FileRemoteReceiver.cs" />
+    <Compile Include="FileRemoteSender.cs" />
     <Compile Include="IMethodInvocation.cs" />
     <Compile Include="IMethodInvocationRemoteReceiver.cs" />
     <Compile Include="IMethodInvocationRemoteSender.cs" />
@@ -58,6 +60,7 @@
     <Compile Include="IRemoteReceiver.cs" />
     <Compile Include="IRemoteSender.cs" />
     <Compile Include="ISerializerOperationMap.cs" />
+    <Compile Include="MessageAcknowledgementTimeoutException.cs" />
     <Compile Include="MethodInvocation.cs" />
     <Compile Include="MethodInvocationReceivedEventArgs.cs" />
     <Compile Include="MethodInvocationRemoteReceiver.cs" />
@@ -68,9 +71,17 @@
     <Compile Include="SerializationException.cs" />
     <Compile Include="SerializerOperationMap.cs" />
     <Compile Include="SoapMethodInvocationSerializer.cs" />
+    <Compile Include="TcpRemoteReceiver.cs" />
+    <Compile Include="TcpRemoteSender.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="InterfaceDocumentationComments.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OperatingSystemAbstraction\OperatingSystemAbstraction.csproj">
+      <Project>{0AD197AE-27BD-4532-AFF9-DDC40EA02295}</Project>
+      <Name>OperatingSystemAbstraction</Name>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

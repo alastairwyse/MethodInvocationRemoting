@@ -17,10 +17,10 @@
 import net.alastairwyse.methodinvocationremoting.*;
 
 /**
- * Forwards operations on a contact list presenter to a remote location using the MethodInvocationRemoting framework and Apache ActiveMQ.
+ * Forwards operations on a contact list presenter to a remote location using the MethodInvocationRemoting framework via the file system.
  * @author Alastair Wyse
  */
-public class ContactListPresenterRemoteAdapter implements IContactListPresenter {
+public class ContactListPresenterRemoteAdapterFile implements IContactListPresenter {
 
     private IMainView mainView;
     // Objects used to store and interrogate whether exceptions occurred whilst receiving method invocations
@@ -28,24 +28,27 @@ public class ContactListPresenterRemoteAdapter implements IContactListPresenter 
     private volatile Exception occurredException; 
     // Objects for sending method invocations
     private MethodInvocationRemoteSender methodInvocationSender;
-    private ActiveMqRemoteSender outgoingSender;
-    private ActiveMqRemoteReceiver outgoingReceiver;
+    private FileRemoteSender outgoingSender;
+    private FileRemoteReceiver outgoingReceiver;
     private MethodInvocationSerializer outgoingMethodSerializer;
     // Objects for receiving method invocations
     private MethodInvocationRemoteReceiver methodInvocationReceiver;
-    private ActiveMqRemoteSender incomingSender;
-    private ActiveMqRemoteReceiver incomingReceiver;
+    private FileRemoteSender incomingSender;
+    private FileRemoteReceiver incomingReceiver;
     private MethodInvocationSerializer incomingMethodSerializer;
-    
+
     /**
-     * Initialises a new instance of the ContactListPresenterRemoteAdapter class.
-     * @param connectUriName     The uniform resource name of the ActiveMq broker to connect to.
-     * @param outgoingQueueName  The name of the ActiveMq queue to use for outgoing method calls.
-     * @param incomingQueueName  The name of the ActiveMq queue to use for incoming method calls.
-     * @param requestFilter      The message filter to use for method invocation requests (i.e. calls).
-     * @param responseFilter     The message file to use for method invocation responses (i.e. return values).
+     * Initialises a new instance of the ContactListPresenterRemoteAdapterFile class.
+     * @param outgoingRequestFilePath   The full path of the file to use for outgoing method invocation requests (i.e. calls).
+     * @param outgoingRequestLockPath   The full path of the lock file to use for outgoing method invocation requests (i.e. calls).
+     * @param outgoingResponseFilePath  The full path of the file to use for outgoing method invocation responses (i.e. return values).
+     * @param outgoingResponseLockPath  The full path of the lock file to use for outgoing method invocation responses (i.e. return values).
+     * @param incomingResponseFilePath  The full path of the file to use for incoming method invocation responses (i.e. return values).
+     * @param incomingResponseLockPath  The full path of the lock file to use for incoming method invocation responses (i.e. return values).
+     * @param incomingRequestFilePath   The full path of the file to use for incoming method invocation requests (i.e. calls).
+     * @param incomingRequestLockPath   The full path of the lock file to use for incoming method invocation requests (i.e. calls).
      */
-    public ContactListPresenterRemoteAdapter(String connectUriName, String outgoingQueueName, String incomingQueueName, String requestFilter, String responseFilter) {
+    public ContactListPresenterRemoteAdapterFile(String outgoingRequestFilePath, String outgoingRequestLockPath, String outgoingResponseFilePath, String outgoingResponseLockPath, String incomingResponseFilePath, String incomingResponseLockPath, String incomingRequestFilePath, String incomingRequestLockPath) {
         exceptionLock = new Object();
         synchronized(exceptionLock) {
             occurredException = null;
@@ -53,21 +56,21 @@ public class ContactListPresenterRemoteAdapter implements IContactListPresenter 
         
         // Setup objects for sending method invocations
         outgoingMethodSerializer = new MethodInvocationSerializer(new SerializerOperationMap());
-        outgoingSender = new ActiveMqRemoteSender(connectUriName, outgoingQueueName, requestFilter);
-        outgoingReceiver = new ActiveMqRemoteReceiver(connectUriName, outgoingQueueName, responseFilter, 200);
+        outgoingSender = new FileRemoteSender(outgoingRequestFilePath, outgoingRequestLockPath);
+        outgoingReceiver = new FileRemoteReceiver(outgoingResponseFilePath, outgoingResponseLockPath, 200);
         methodInvocationSender = new MethodInvocationRemoteSender(outgoingMethodSerializer, outgoingSender, outgoingReceiver);
 
         // Setup objects for receiving method invocations
         incomingMethodSerializer = new MethodInvocationSerializer(new SerializerOperationMap());
-        incomingSender = new ActiveMqRemoteSender(connectUriName, incomingQueueName, responseFilter);
-        incomingReceiver = new ActiveMqRemoteReceiver(connectUriName, incomingQueueName, requestFilter, 200);
+        incomingSender = new FileRemoteSender(incomingResponseFilePath, incomingResponseLockPath);
+        incomingReceiver = new FileRemoteReceiver(incomingRequestFilePath, incomingRequestLockPath, 200);
         methodInvocationReceiver = new MethodInvocationRemoteReceiver(incomingMethodSerializer, incomingSender, incomingReceiver);
         methodInvocationReceiver.setReceivedEventHandler(new MessageReceivedHandler());
     }
     
     /**
      * Returns an exception that occurred whilst the presenter was operating, or null if no exception has occurred.
-     * As the ContactListPresenterRemoteAdapter creates additional threads as part of the MethodInvocationRemoting framework, this method can be used to determine if any exceptions have occurred on spawned threads.
+     * As the ContactListPresenterRemoteAdapterFile creates additional threads as part of the MethodInvocationRemoting framework, this method can be used to determine if any exceptions have occurred on spawned threads.
      * @return  The exception that occurred, or null if no exception has occurred.
      */
     public Exception getOccurredException() {
@@ -87,27 +90,19 @@ public class ContactListPresenterRemoteAdapter implements IContactListPresenter 
     }
     
     /**
-     * Connects and initialises the underlying MethodInvocationRemoting and ActiveMQ components.
+     * Connects and initialises the underlying MethodInvocationRemoting components.
      */
     public void Connect() throws Exception {
-        outgoingSender.Connect();
-        outgoingReceiver.Connect();
-        incomingSender.Connect();
-        incomingReceiver.Connect();
         methodInvocationReceiver.Receive();
     }
     
     /**
-     * Disconnects and cleans up the underlying MethodInvocationRemoting and ActiveMQ components.
+     * Disconnects and cleans up the underlying MethodInvocationRemoting components.
      */
     public void Disconnect() throws Exception {
         methodInvocationReceiver.CancelReceive();
         incomingReceiver.CancelReceive();
-        incomingReceiver.Disconnect();
-        incomingSender.Disconnect();
         outgoingReceiver.CancelReceive();
-        outgoingReceiver.Disconnect();
-        outgoingSender.Disconnect();
     }
     
     @Override

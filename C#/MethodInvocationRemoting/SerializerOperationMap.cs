@@ -26,17 +26,11 @@ namespace MethodInvocationRemoting
     /// </summary>
     public struct NativeTypeSerialisationOperationsMap
     {
-        /// <summary>
-        /// The native .NET type in the mapping.
-        /// </summary>
+        /// <summary>The native .NET type in the mapping.</summary>
         public Type nativeType;
-        /// <summary>
-        /// The method used to serialize objects of the type.
-        /// </summary>
+        /// <summary>The method used to serialize objects of the type.</summary>
         public XmlSerializationOperation xmlSerializationOperation;
-        /// <summary>
-        /// The method used to deserialize objects of the type.
-        /// </summary>
+        /// <summary>The method used to deserialize objects of the type.</summary>
         public XmlDeserializationOperation xmlDeserializationOperation;
 
         /// <summary>
@@ -58,17 +52,11 @@ namespace MethodInvocationRemoting
     /// </summary>
     public struct SerializedTypeSerialisationOperationsMap
     {
-        /// <summary>
-        /// The string representation of the type in the mapping.
-        /// </summary>
+        /// <summary>The string representation of the type in the mapping.</summary>
         public string serializedType;
-        /// <summary>
-        /// The method used to serialize objects of the type.
-        /// </summary>
+        /// <summary>The method used to serialize objects of the type.</summary> 
         public XmlSerializationOperation xmlSerializationOperation;
-        /// <summary>
-        /// The method used to deserialize objects of the type.
-        /// </summary>
+        /// <summary>The method used to deserialize objects of the type.</summary>
         public XmlDeserializationOperation xmlDeserializationOperation;
 
         /// <summary>

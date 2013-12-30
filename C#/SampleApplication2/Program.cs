@@ -30,13 +30,18 @@ namespace SampleApplication2
         {
             // Setup data model, presenter, and view
             ContactListDataModelLayer dataModel = new ContactListDataModelLayer();
-            MainViewRemoteAdapter mainView = new MainViewRemoteAdapter("activemq:tcp://localhost:61616?wireFormat.maxInactivityDuration=0", "FromC#", "FromJava", "Request", "Response");
+
+            // Uncomment one of the 3 mainView constructors below to select between ActiveMQ, file, and TCP as the underlying transport mechanism
+            MainViewRemoteAdapterActiveMQ mainView = new MainViewRemoteAdapterActiveMQ("activemq:tcp://localhost:61616?wireFormat.maxInactivityDuration=0", "FromC#", "FromJava", "Request", "Response");
+            // MainViewRemoteAdapterFile mainView = new MainViewRemoteAdapterFile(@"C:\Temp\FromC#Request.txt", @"C:\Temp\FromC#Request.lck", @"C:\Temp\FromC#Response.txt", @"C:\Temp\FromC#Response.lck", @"C:\Temp\FromJavaResponse.txt", @"C:\Temp\FromJavaResponse.lck", @"C:\Temp\FromJavaRequest.txt", @"C:\Temp\FromJavaRequest.lck");
+            // MainViewRemoteAdapterTcp mainView = new MainViewRemoteAdapterTcp(System.Net.IPAddress.Loopback, 55000, 55001, 55002, 55003, 15, 2000, 30000, 25, 50);
+
             ContactListPresenter presenter = new ContactListPresenter(mainView, dataModel);
             mainView.SetPresenter(presenter);
 
             try
             {
-                // Connect the view adapter to ActiveMQ and start the application
+                // Connect the view adapter to the transport layer and start the application
                 mainView.Connect();
                 presenter.Start();
                 Console.WriteLine("Application running...");

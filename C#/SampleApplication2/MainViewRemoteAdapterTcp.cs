@@ -23,51 +23,56 @@ namespace SampleApplication2
 {
     //******************************************************************************
     //
-    // Class: MainViewRemoteAdapter
+    // Class: MainViewRemoteAdapterTcp
     //
     //******************************************************************************
     /// <summary>
-    /// Forwards operations on a main view to a remote location using the MethodInvocationRemoting framework and Apache ActiveMQ.
+    /// Forwards operations on a main view to a remote location using the MethodInvocationRemoting framework via a TCP network.
     /// </summary>
-    public class MainViewRemoteAdapter : IMainView
+    public class MainViewRemoteAdapterTcp : IMainView
     {
         private IContactListPresenter presenter;
         // Objects for sending method invocations
         private MethodInvocationRemoteSender methodInvocationSender;
-        private ActiveMqRemoteSender outgoingSender;
-        private ActiveMqRemoteReceiver outgoingReceiver;
+        private TcpRemoteSender outgoingSender;
+        private TcpRemoteReceiver outgoingReceiver;
         private MethodInvocationSerializer outgoingMethodSerializer;
         // Objects for receiving method invocations
         private MethodInvocationRemoteReceiver methodInvocationReceiver;
-        private ActiveMqRemoteSender incomingSender;
-        private ActiveMqRemoteReceiver incomingReceiver;
+        private TcpRemoteSender incomingSender;
+        private TcpRemoteReceiver incomingReceiver;
         private MethodInvocationSerializer incomingMethodSerializer;
 
         //------------------------------------------------------------------------------
         //
-        // Method: MainViewRemoteAdapter (constructor)
+        // Method: MainViewRemoteAdapterTcp (constructor)
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Initialises a new instance of the SampleApplication2.MainViewRemoteAdapter class.
+        /// Initialises a new instance of the SampleApplication2.MainViewRemoteAdapterTcp class.
         /// </summary>
-        /// <param name="connectUriName">The uniform resource name of the ActiveMq broker to connect to.</param>
-        /// <param name="outgoingQueueName">The name of the ActiveMq queue to use for outgoing method calls.</param>
-        /// <param name="incomingQueueName">The name of the ActiveMq queue to use for incoming method calls.</param>
-        /// <param name="requestFilter">The message filter to use for method invocation requests (i.e. calls).</param>
-        /// <param name="responseFilter">The message file to use for method invocation responses (i.e. return values).</param>
-        public MainViewRemoteAdapter(string connectUriName, string outgoingQueueName, string incomingQueueName, string requestFilter, string responseFilter)
+        /// <param name="remoteIpAddress">The IP address of the machine where the ContactListPresenterRemoteAdapterTcp object is located.</param>
+        /// <param name="outgoingSenderPort">The TCP port on which to send outgoing method invocation requests (i.e. calls).</param>
+        /// <param name="outgoingReceiverPort">The TCP port on which to receive outgoing method invocation responses (i.e. return values).</param>
+        /// <param name="incomingSenderPort">The TCP port on which to send incoming method invocation responses (i.e. return values).</param>
+        /// <param name="incomingReceiverPort">The TCP port on which to receive incoming method invocation requests (i.e. calls).</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect the underlying TcpRemoteSender and TcpRemoteReceiver objects.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time the TcpRemoteSender should wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time the TcpRemoteSender should wait between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="receiveRetryInterval">The time the TcpRemoteReceiver should wait between attempts to receive a message in milliseconds.</param>
+        public MainViewRemoteAdapterTcp(System.Net.IPAddress remoteIpAddress, int outgoingSenderPort, int outgoingReceiverPort, int incomingSenderPort, int incomingReceiverPort, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, int receiveRetryInterval)
         {
             // Setup objects for sending method invocations
             outgoingMethodSerializer = new MethodInvocationSerializer(new SerializerOperationMap());
-            outgoingSender = new ActiveMqRemoteSender(connectUriName, outgoingQueueName, requestFilter);
-            outgoingReceiver = new ActiveMqRemoteReceiver(connectUriName, outgoingQueueName, responseFilter, 200);
+            outgoingSender = new TcpRemoteSender(remoteIpAddress, outgoingSenderPort, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+            outgoingReceiver = new TcpRemoteReceiver(outgoingReceiverPort, connectRetryCount, connectRetryInterval, receiveRetryInterval);
             methodInvocationSender = new MethodInvocationRemoteSender(outgoingMethodSerializer, outgoingSender, outgoingReceiver);
 
             // Setup objects for receiving method invocations
             incomingMethodSerializer = new MethodInvocationSerializer(new SerializerOperationMap());
-            incomingSender = new ActiveMqRemoteSender(connectUriName, incomingQueueName, responseFilter);
-            incomingReceiver = new ActiveMqRemoteReceiver(connectUriName, incomingQueueName, requestFilter, 200);
+            incomingSender = new TcpRemoteSender(remoteIpAddress, incomingSenderPort, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+            incomingReceiver = new TcpRemoteReceiver(incomingReceiverPort, connectRetryCount, connectRetryInterval, receiveRetryInterval);
             methodInvocationReceiver = new MethodInvocationRemoteReceiver(incomingMethodSerializer, incomingSender, incomingReceiver);
             // Hook the 'MethodInvocationReceived' event on the receiver up to the local method which handles recieving method invocations
             methodInvocationReceiver.MethodInvocationReceived += new MethodInvocationReceivedEventHandler(ReceiveMethodInvocation);
@@ -79,14 +84,14 @@ namespace SampleApplication2
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Connects and initialises the underlying MethodInvocationRemoting and ActiveMQ components.
+        /// Connects and initialises the underlying MethodInvocationRemoting components.
         /// </summary>
         public void Connect()
         {
-            outgoingSender.Connect();
-            outgoingReceiver.Connect();
-            incomingSender.Connect();
             incomingReceiver.Connect();
+            incomingSender.Connect();
+            outgoingReceiver.Connect();
+            outgoingSender.Connect();
             methodInvocationReceiver.Receive();
         }
 
@@ -96,7 +101,7 @@ namespace SampleApplication2
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Disconnects and cleans up the underlying MethodInvocationRemoting and ActiveMQ components.
+        /// Disconnects and cleans up the underlying MethodInvocationRemoting components.
         /// </summary>
         public void Disconnect()
         {
@@ -108,7 +113,7 @@ namespace SampleApplication2
             outgoingReceiver.Disconnect();
             outgoingSender.Disconnect();
 
-            // Call dispose on the sender and receiver objects, as they hold unmanaged connections to ActiveMQ
+            // Call dispose on the sender and receiver objects
             incomingReceiver.Dispose();
             incomingSender.Dispose();
             outgoingReceiver.Dispose();

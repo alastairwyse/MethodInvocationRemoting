@@ -35,13 +35,25 @@ Philip A. Craig
 
 
 ================================================================================
-Method Invocation Remoting includes NMock2 version 2.0.0.44 which is released 
-under the "Apache License, Version 2.0" 
+Method Invocation Remoting includes NMock2 version 2.1.3641.19651 which is 
+released under the "Apache License, Version 2.0" 
 (http://www.apache.org/licenses/LICENSE-2.0).
 
 http://sourceforge.net/apps/mediawiki/nmock2/index.php
 
 For a copy of the license, please see the 'LICENSE' file.
+
+Details of bundled components
+-----------------------------
+
+   This product includes software developed at
+   NMock2 (http://www.sourceforge.net/projects/nmock2).
+
+   Proxy creation support is provided by the CASTLE project
+   licensed under Apache 2.0 license. Therefore the components
+   Castle.Core and Castle.DynamicProxy2 has been used. The original
+   source code is available from
+      https://svn.castleproject.org/svn/castle/branches/net-2.0-trunk/
 
 
 ================================================================================

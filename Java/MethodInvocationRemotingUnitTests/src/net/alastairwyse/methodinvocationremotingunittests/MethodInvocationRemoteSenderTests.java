@@ -109,12 +109,9 @@ public class MethodInvocationRemoteSenderTests {
         when(mockMethodInvocationSerializer.Serialize(testMethodInvocation)).thenReturn(testSerializedMethodInvocation);
         doReturn(testSerializedReturnValue).when(mockRemoteReceiver).Receive();
         when(mockMethodInvocationSerializer.DeserializeReturnValue(testSerializedReturnValue)).thenReturn(testReturnValue);
-        try {
-            returnValue = (String)testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
-        }
-        catch(Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        returnValue = (String)testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
+
         verify(mockMethodInvocationSerializer).Serialize(testMethodInvocation);
         verify(mockRemoteSender).Send(testSerializedMethodInvocation);
         verify(mockRemoteReceiver).Receive();
@@ -180,12 +177,9 @@ public class MethodInvocationRemoteSenderTests {
         when(mockMethodInvocationSerializer.Serialize(testVoidMethodInvocation)).thenReturn(testVoidSerializedMethodInvocation);
         doReturn(testVoidSerializedReturnValue).when(mockRemoteReceiver).Receive();
         doReturn(testVoidSerializedReturnValue).when(mockMethodInvocationSerializer).getVoidReturnValue();
-        try {
-            testMethodInvocationRemoteSender.InvokeVoidMethod(testVoidMethodInvocation);
-        }
-        catch(Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        testMethodInvocationRemoteSender.InvokeVoidMethod(testVoidMethodInvocation);
+
         verify(mockMethodInvocationSerializer).Serialize(testVoidMethodInvocation);
         verify(mockRemoteSender).Send(testVoidSerializedMethodInvocation);
         verify(mockRemoteReceiver).Receive();

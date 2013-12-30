@@ -62,14 +62,10 @@ public class ActiveMqRemoteSenderTests {
     }
     
     @Test
-    public void DisconnectSuccessTest() throws JMSException {
-        try {
-            testActiveMqRemoteSender.Connect();
-            testActiveMqRemoteSender.Disconnect();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+    public void DisconnectSuccessTest() throws Exception {
+        testActiveMqRemoteSender.Connect();
+        testActiveMqRemoteSender.Disconnect();
+
         verify(mockProducer).close();
         // Note other mock interactions are tested in base class tests 
         assertEquals(false, testActiveMqRemoteSender.getConnected());
@@ -116,13 +112,10 @@ public class ActiveMqRemoteSenderTests {
         TextMessage mockTextMessage = mock(TextMessage.class);
         
         when(mockSession.createTextMessage(testMessage)).thenReturn(mockTextMessage);
-        try {
-            testActiveMqRemoteSender.Connect();
-            testActiveMqRemoteSender.Send(testMessage);
-        }
-        catch(Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+        
+        testActiveMqRemoteSender.Connect();
+        testActiveMqRemoteSender.Send(testMessage);
+
         verify(mockConnection).start();
         verify(mockSession).createTextMessage(testMessage);
         verify(mockTextMessage).setStringProperty(filterIdentifier, messageFilter);

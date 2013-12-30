@@ -193,45 +193,5 @@
             </summary>
             <param name="inputMethodInvocation">The method to invoke.</param>
         </member>
-        <member name="T:MethodInvocationRemoting.IFile">
-            <summary>
-                Represents a file within the file system.
-            </summary>
-        </member>
-        <member name="M:MethodInvocationRemoting.IFile.ReadAll">
-            <summary>
-                Reads the entire contents of the file as a string.
-            </summary>
-            <returns>The contents of the file.</returns>
-        </member>
-        <member name="M:MethodInvocationRemoting.IFile.WriteAll(System.String)">
-            <summary>
-                Overwrites the entire contents of the file with the specified string.
-            </summary>
-            <param name="data">The data to write to the file.</param>
-        </member>
-        <member name="P:MethodInvocationRemoting.IFile.Path">
-            <summary>
-                The full path to the file.
-            </summary>
-        </member>
-        <member name="T:MethodInvocationRemoting.IFileSystem">
-            <summary>
-                Represents the file system.
-            </summary>
-        </member>
-        <member name="M:MethodInvocationRemoting.IFileSystem.CheckFileExists(System.String)">
-            <summary>
-                Checks whether a file at the given path exists in the file system.
-            </summary>
-            <param name="path">The full path to the file.</param>
-            <returns>Whether the specified file exists.</returns>
-        </member>
-        <member name="M:MethodInvocationRemoting.IFileSystem.DeleteFile(System.String)">
-            <summary>
-                Deletes the file specified by the given path.
-            </summary>
-            <param name="path">The full path to the file.</param>
-        </member>
     </members>
 </doc>

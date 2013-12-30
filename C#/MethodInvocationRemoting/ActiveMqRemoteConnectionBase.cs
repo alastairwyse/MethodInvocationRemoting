@@ -33,54 +33,30 @@ namespace MethodInvocationRemoting
     /// </summary>
     public abstract class ActiveMqRemoteConnectionBase
     {
-        /// <summary>
-        /// Used in the properties of a message to identify the message filter.
-        /// </summary>
+        /// <summary>Used in the properties of a message to identify the message filter.</summary>
         protected const string filterIdentifier = "Filter";
-        /// <summary>
-        /// Indicates whether the object has been disposed.
-        /// </summary>
+        /// <summary>Indicates whether the object has been disposed.</summary>
         protected bool disposed;
 
-        /// <summary>
-        /// Uniform resource identifier of the ActiveMQ broker to connect to.
-        /// </summary>
+        /// <summary>Uniform resource identifier of the ActiveMQ broker to connect to.</summary>
         protected string connectUriName;
-        /// <summary>
-        /// The name of the queue to connect to.
-        /// </summary>
+        /// <summary>The name of the queue to connect to.</summary>
         protected string queueName;
-        /// <summary>
-        /// The value of the message filter.
-        /// </summary>
+        /// <summary>The value of the message filter.</summary>
         protected string messageFilter;
-        /// <summary>
-        /// Object representation of the uniform resource identifier of the ActiveMQ broker to connect to.
-        /// </summary>
+        /// <summary>Object representation of the uniform resource identifier of the ActiveMQ broker to connect to.</summary>
         protected Uri connectUri;
-        /// <summary>
-        /// The NMS connection factory to use when connecting the ActiveMQ broker.
-        /// </summary>
+        /// <summary>The NMS connection factory to use when connecting the ActiveMQ broker.</summary>
         protected IConnectionFactory connectionFactory;
-        /// <summary>
-        /// The NMS connection to use when connecting the ActiveMQ broker.
-        /// </summary>
+        /// <summary>The NMS connection to use when connecting the ActiveMQ broker.</summary>
         protected IConnection connection;
-        /// <summary>
-        /// The NMS session to use when connecting the ActiveMQ broker.
-        /// </summary>
+        /// <summary>The NMS session to use when connecting the ActiveMQ broker.</summary>
         protected ISession session;
-        /// <summary>
-        /// The NMS destination to use when connecting the ActiveMQ broker.
-        /// </summary>
+        /// <summary>The NMS destination to use when connecting the ActiveMQ broker.</summary>
         protected IDestination destination;
-        /// <summary>
-        /// Indicates whether the object is currently connected to the ActiveMQ broker.
-        /// </summary>
+        /// <summary>Indicates whether the object is currently connected to the ActiveMQ broker.</summary>
         protected bool connected;
-        /// <summary>
-        /// Indicates that the object was instantiated using the test constructor.
-        /// </summary>
+        /// <summary>Indicates that the object was instantiated using the test constructor.</summary>
         protected bool testConstructor; 
 
         //------------------------------------------------------------------------------

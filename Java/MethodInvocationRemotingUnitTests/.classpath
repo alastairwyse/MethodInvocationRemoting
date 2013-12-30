@@ -6,5 +6,6 @@
 	<classpathentry kind="src" path="/MethodInvocationRemoting"/>
 	<classpathentry kind="lib" path="../Referenced Libraries/mockito-all-1.9.5.jar"/>
 	<classpathentry kind="lib" path="../Referenced Libraries/activemq-all-5.7.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/OperatingSystemAbstraction"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

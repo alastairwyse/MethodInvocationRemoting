@@ -73,17 +73,14 @@ public class MethodInvocationRemoteReceiverTests {
         MethodInvocationReceivedEventHandlerStub stubEventHandler = new MethodInvocationReceivedEventHandlerStub();
         
         doThrow(new Exception("Mock Receive Failure")).when(mockRemoteReceiver).Receive();
-        try {
-            testMethodInvocationRemoteReceiver.setReceivedEventHandler(stubEventHandler);
-            testMethodInvocationRemoteReceiver.Receive();
-            // Need to pause so that receiveLoopThread has time to iterate before CancelReceive() is sent.
-            //   Unfortunately this is still not a deterministic way to test, but best that can be done given that the Receive() spawns off a new thread.
-            Thread.sleep(50);
-            testMethodInvocationRemoteReceiver.CancelReceive();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+        
+        testMethodInvocationRemoteReceiver.setReceivedEventHandler(stubEventHandler);
+        testMethodInvocationRemoteReceiver.Receive();
+        // Need to pause so that receiveLoopThread has time to iterate before CancelReceive() is sent.
+        //   Unfortunately this is still not a deterministic way to test, but best that can be done given that the Receive() spawns off a new thread.
+        Thread.sleep(50);
+        testMethodInvocationRemoteReceiver.CancelReceive();
+
         verify(mockRemoteReceiver).Receive();
         verify(mockRemoteReceiver).CancelReceive();
         verifyNoMoreInteractions(mockRemoteSender);
@@ -96,16 +93,13 @@ public class MethodInvocationRemoteReceiverTests {
     public void ReceiveSuccessTests() throws Exception {
         doReturn(testSerializedMethodInvocation).when(mockRemoteReceiver).Receive();
         when(mockMethodInvocationSerializer.Deserialize(testSerializedMethodInvocation)).thenReturn(testMethodInvocation);
-        try {
-            testMethodInvocationRemoteReceiver.Receive();
-            // Need to pause so that receiveLoopThread has time to iterate before CancelReceive() is sent.
-            //   Unfortunately this is still not a deterministic way to test, but best that can be done given that the Receive() spawns off a new thread.
-            Thread.sleep(50);
-            testMethodInvocationRemoteReceiver.CancelReceive();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        testMethodInvocationRemoteReceiver.Receive();
+        // Need to pause so that receiveLoopThread has time to iterate before CancelReceive() is sent.
+        //   Unfortunately this is still not a deterministic way to test, but best that can be done given that the Receive() spawns off a new thread.
+        Thread.sleep(50);
+        testMethodInvocationRemoteReceiver.CancelReceive();
+
         verify(mockRemoteReceiver, atLeastOnce()).Receive();
         verify(mockMethodInvocationSerializer, atLeastOnce()).Deserialize(testSerializedMethodInvocation);
         verify(mockMethodInvocationReceivedEventHandler, atLeastOnce()).MethodInvocationReceived(testMethodInvocationRemoteReceiver, testMethodInvocation);
@@ -140,12 +134,9 @@ public class MethodInvocationRemoteReceiverTests {
         String testSerializedReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnValue><DataType>string</DataType><string>TestReturnValue</string></ReturnValue>";
 
         when(mockMethodInvocationSerializer.SerializeReturnValue(testReturnValue)).thenReturn(testSerializedReturnValue);
-        try {
-            testMethodInvocationRemoteReceiver.SendReturnValue(testReturnValue);
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        testMethodInvocationRemoteReceiver.SendReturnValue(testReturnValue);
+
         verify(mockMethodInvocationSerializer).SerializeReturnValue(testReturnValue);
         verify(mockRemoteSender).Send(testSerializedReturnValue);
         verifyNoMoreInteractions(mockRemoteSender);
@@ -176,12 +167,9 @@ public class MethodInvocationRemoteReceiverTests {
         String testVoidReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnType>void</ReturnType>";
         
         doReturn(testVoidReturnValue).when(mockMethodInvocationSerializer).getVoidReturnValue();
-        try {
-            testMethodInvocationRemoteReceiver.SendVoidReturn();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        testMethodInvocationRemoteReceiver.SendVoidReturn();
+
         verify(mockMethodInvocationSerializer).getVoidReturnValue();
         verify(mockRemoteSender).Send(testVoidReturnValue);
         verifyNoMoreInteractions(mockRemoteSender);

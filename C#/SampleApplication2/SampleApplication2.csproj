@@ -44,7 +44,9 @@
     <Compile Include="IContactListDataModelLayer.cs" />
     <Compile Include="IContactListPresenter.cs" />
     <Compile Include="IMainView.cs" />
-    <Compile Include="MainViewRemoteAdapter.cs" />
+    <Compile Include="MainViewRemoteAdapterActiveMQ.cs" />
+    <Compile Include="MainViewRemoteAdapterFile.cs" />
+    <Compile Include="MainViewRemoteAdapterTcp.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

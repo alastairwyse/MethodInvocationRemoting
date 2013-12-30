@@ -16,6 +16,7 @@
 
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
+import java.net.*;
 
 /**
  * Method Invocation Remoting framework second sample application.
@@ -28,13 +29,22 @@ public class Program {
 
     public static void main(String[] args) {
 
-        ContactListPresenterRemoteAdapter presenter = null;
+        // Uncomment one of the 3 presenter declarations below to select between ActiveMQ, file, and TCP as the underlying transport mechanism
+        ContactListPresenterRemoteAdapterActiveMQ presenter = null;
+        // ContactListPresenterRemoteAdapterFile presenter = null;
+        // ContactListPresenterRemoteAdapterTcp presenter = null;
+        
         MainView mainView = null;
         
         try {
             // Setup presenter and view
-            presenter = new ContactListPresenterRemoteAdapter("tcp://localhost:61616?wireFormat.maxInactivityDuration=0", "FromJava", "FromC#", "Request", "Response");
-            mainView = new MainView();
+            
+            // Uncomment one of the 3 presenter constructors below to select between ActiveMQ, file, and TCP as the underlying transport mechanism
+            presenter = new ContactListPresenterRemoteAdapterActiveMQ("tcp://localhost:61616?wireFormat.maxInactivityDuration=0", "FromJava", "FromC#", "Request", "Response");
+            // presenter = new ContactListPresenterRemoteAdapterFile("C:\\Temp\\FromJavaRequest.txt", "C:\\Temp\\FromJavaRequest.lck", "C:\\Temp\\FromJavaResponse.txt", "C:\\Temp\\FromJavaResponse.lck", "C:\\Temp\\FromC#Response.txt", "C:\\Temp\\FromC#Response.lck", "C:\\Temp\\FromC#Request.txt", "C:\\Temp\\FromC#Request.lck");
+            // presenter = new ContactListPresenterRemoteAdapterTcp(InetAddress.getLoopbackAddress(), 55003, 55002, 55001, 55000, 15, 2000, 30000, 50, 25);
+            
+        	mainView = new MainView();
             presenter.setMainView(mainView);
             mainView.SetPresenter(presenter);
             presenter.Connect();
@@ -58,7 +68,7 @@ public class Program {
         }
         finally {
             mainView.dispose();
-            // Disconnect the presenter from ActiveMQ
+            // Disconnect the presenter from the transport layer
             try {
                 presenter.Disconnect();
             }

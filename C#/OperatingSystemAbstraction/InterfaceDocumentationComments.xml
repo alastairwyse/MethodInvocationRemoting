@@ -1,0 +1,155 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!-- Comments for all interfaces and interface methods are included in this common file, so that the same comments can be used by the interfaces, and the classes that implement them -->
+<doc>
+    <assembly>
+        <name>OperatingSystemAbstraction</name>
+    </assembly>
+    <members>
+        <member name="T:OperatingSystemAbstraction.IFile">
+            <summary>
+                Represents a file within the file system.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IFile.ReadAll">
+            <summary>
+                Reads the entire contents of the file as a string.
+            </summary>
+            <returns>The contents of the file.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IFile.WriteAll(System.String)">
+            <summary>
+                Overwrites the entire contents of the file with the specified string.
+            </summary>
+            <param name="data">The data to write to the file.</param>
+        </member>
+        <member name="P:OperatingSystemAbstraction.IFile.Path">
+            <summary>
+                The full path to the file.
+            </summary>
+        </member>
+        <member name="T:OperatingSystemAbstraction.IFileSystem">
+            <summary>
+                Represents the file system.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IFileSystem.CheckFileExists(System.String)">
+            <summary>
+                Checks whether a file at the given path exists in the file system.
+            </summary>
+            <param name="path">The full path to the file.</param>
+            <returns>Whether the specified file exists.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IFileSystem.DeleteFile(System.String)">
+            <summary>
+                Deletes the file specified by the given path.
+            </summary>
+            <param name="path">The full path to the file.</param>
+        </member>
+        <member name="T:OperatingSystemAbstraction.ITcpClient">
+            <summary>
+                Provides an abstraction of the System.Net.Sockets.TcpClient class, to facilitate mocking and unit testing.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpClient.Connect(System.Net.IPAddress,System.Int32)">
+            <summary>
+                Connects the client to a remote TCP host using the specified IP address and port number.
+            </summary>
+            <param name="ipAddress">The System.Net.IPAddress of the host to which you intend to connect.</param>
+            <param name="port">The port number to which you intend to connect.</param>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpClient.GetStream">
+            <summary>
+                Returns the network stream used to send and receive data.
+            </summary>
+            <returns>The underlying network stream.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpClient.Close">
+            <summary>
+                Disposes this object instance and requests that the underlying TCP connection be closed.
+            </summary>
+        </member>
+        <member name="P:OperatingSystemAbstraction.ITcpClient.Connected">
+            <summary>
+                Gets a value indicating whether the underlying Socket for the TcpClient class is connected to a remote host.
+            </summary>
+        </member>
+        <member name="P:OperatingSystemAbstraction.ITcpClient.Available">
+            <summary>
+                Gets the amount of data that has been received from the network and is available to be read.
+            </summary>
+        </member>
+        <member name="T:OperatingSystemAbstraction.ITcpListener">
+            <summary>
+                Provides an abstraction of the System.Net.Sockets.TcpListener class, to facilitate mocking and unit testing.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpListener.Pending">
+            <summary>
+                Determines if there are pending connection requests.
+            </summary>
+            <returns>true if connections are pending; otherwise, false.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpListener.AcceptTcpClient">
+            <summary>
+                Accepts a pending connection request.
+            </summary>
+            <returns>A TcpClient used to send and receive data.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpListener.Start(System.Int32)">
+            <summary>
+                Starts listening for incoming connection requests with a maximum number of pending connection.
+            </summary>
+            <param name="backlog">The maximum length of the pending connections queue.</param>
+        </member>
+        <member name="M:OperatingSystemAbstraction.ITcpListener.Stop">
+            <summary>
+                Closes the listener.
+            </summary>
+        </member>
+        <member name="P:OperatingSystemAbstraction.ITcpListener.Active">
+            <summary>
+                Gets a value that indicates whether the listener is actively listening for client connections.
+            </summary>
+        </member>
+        <member name="T:OperatingSystemAbstraction.INetworkStream">
+            <summary>
+                Provides an abstraction of the System.Net.Sockets.NetworkStream class, to facilitate mocking and unit testing.
+            </summary>
+        </member>
+        <member name="P:OperatingSystemAbstraction.INetworkStream.CanRead">
+            <summary>
+                Gets a value that indicates whether the NetworkStream supports reading.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.INetworkStream.ReadByte">
+            <summary>
+                Reads a byte from the stream and advances the position within the stream by one byte, or returns -1 if at the end of the stream.
+            </summary>
+            <returns>The unsigned byte cast to an Int32, or -1 if at the end of the stream.</returns>
+        </member>
+        <member name="M:OperatingSystemAbstraction.INetworkStream.Read(System.Byte[]@,System.Int32,System.Int32)">
+            <summary>
+                Reads data from the NetworkStream.
+            </summary>
+            <param name="buffer">An array of type Byte that is the location in memory to store data read from the NetworkStream.</param>
+            <param name="offset">The location in buffer to begin storing the data to. </param>
+            <param name="size">The number of bytes to read from the NetworkStream. </param>
+            <returns>The number of bytes read from the NetworkStream.</returns>
+            <remarks>Note that parameter 'buffer' has been explicitly marked as a ref parameter, to allow correct mocking of this method with NMock2.</remarks>
+        </member>
+        <member name="M:OperatingSystemAbstraction.INetworkStream.Write(System.Byte[],System.Int32,System.Int32)">
+            <summary>
+                Writes data to the stream.
+            </summary>
+            <param name="buffer">An array of type Byte that contains the data to write to the stream. </param>
+            <param name="offset">The location in buffer from which to start writing data. </param>
+            <param name="size">The number of bytes to write to the stream.</param>
+        </member>
+        <member name="M:OperatingSystemAbstraction.INetworkStream.WriteByte(System.Byte)">
+            <summary>
+                Writes a byte to the current position in the stream and advances the position within the stream by one byte.
+            </summary>
+            <param name="value">The byte to write to the stream.</param>
+        </member>
+    </members>
+</doc>

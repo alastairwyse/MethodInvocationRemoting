@@ -81,14 +81,11 @@ public class ActiveMqRemoteConnectionBaseTests {
     }
     
     @Test
-    public void ConnectSuccessTest() throws JMSException {
+    public void ConnectSuccessTest() throws Exception {
         assertEquals(false, testActiveMqRemoteSender.getConnected());
-        try {
-            testActiveMqRemoteSender.Connect();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+
+        testActiveMqRemoteSender.Connect();
+
         verify(mockConnection).start();
         verifyNoMoreInteractions(mockConnection);
         CheckNoAdditionalMockInteractions();
@@ -105,14 +102,10 @@ public class ActiveMqRemoteConnectionBaseTests {
     }
     
     @Test
-    public void DisconnnectSuccessTest() throws JMSException {
-        try {
-            testActiveMqRemoteSender.Connect();
-            testActiveMqRemoteSender.Disconnect();
-        }
-        catch (Exception e) {
-            fail("Unexpected exception thrown.");
-        }
+    public void DisconnnectSuccessTest() throws Exception {
+        testActiveMqRemoteSender.Connect();
+        testActiveMqRemoteSender.Disconnect();
+
         verify(mockConnection).start();
         verify(mockConnection).stop();
         verify(mockConnection).close();

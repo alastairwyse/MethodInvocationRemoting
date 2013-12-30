@@ -3,6 +3,7 @@
 	<name>MethodInvocationRemoting</name>
 	<comment></comment>
 	<projects>
+		<project>OperatingSystemAbstraction</project>
 	</projects>
 	<buildSpec>
 		<buildCommand>
