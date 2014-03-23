@@ -30,9 +30,10 @@ namespace MethodInvocationRemoting
     /// <summary>
     /// Implements serialization and deserialization of MethodInvocationRemoting.MethodInvocation objects to and from soap messages.
     /// </summary>
-    public class SoapMethodInvocationSerializer : MethodInvocationSerializerBase, IMethodInvocationSerializer
+    public class SoapMethodInvocationSerializer : IMethodInvocationSerializer
     {
         private SoapFormatter internalSoapFormatter;
+        private SerializerUtilities serializerUtilities;
         private const string voidReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnType>void</ReturnType>";
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="P:MethodInvocationRemoting.IMethodInvocationSerializer.VoidReturnValue"]/*'/>
@@ -55,6 +56,7 @@ namespace MethodInvocationRemoting
         public SoapMethodInvocationSerializer()
         {
             internalSoapFormatter = new SoapFormatter();
+            serializerUtilities = new SerializerUtilities(Encoding.UTF8);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Serialize(MethodInvocationRemoting.IMethodInvocation)"]/*'/>
@@ -109,20 +111,21 @@ namespace MethodInvocationRemoting
         {
             // Objects to convert the Stream produced by the SoapFormatter into a string.
             string returnString;
-            MemoryStream targetStream = new MemoryStream();
 
-            try
+            using (MemoryStream targetStream = new MemoryStream())
             {
-                internalSoapFormatter.Serialize(targetStream, inputObject);
+                try
+                {
+                    internalSoapFormatter.Serialize(targetStream, inputObject);
+                }
+                catch (Exception e)
+                {
+                    throw new SerializationException("Failed to serialize object.", inputObject, e);
+                }
+                targetStream.Flush();
+                returnString = serializerUtilities.ConvertMemoryStreamToString(targetStream);
+                targetStream.Close();
             }
-            catch (Exception e)
-            {
-                throw new SerializationException("Failed to serialize object.", inputObject, e);
-            }
-            targetStream.Flush();
-            returnString = ConvertMemoryStreamToString(targetStream);
-            targetStream.Close();
-            targetStream.Dispose();
             return returnString;
         }
 
@@ -139,18 +142,19 @@ namespace MethodInvocationRemoting
         private object DeserializeObject(string inputString)
         {
             object returnObject;
-            MemoryStream sourceStream = ConvertStringToMemoryStream(inputString);
 
-            try
+            using (MemoryStream sourceStream = serializerUtilities.ConvertStringToMemoryStream(inputString))
             {
-                returnObject = internalSoapFormatter.Deserialize(sourceStream);
+                try
+                {
+                    returnObject = internalSoapFormatter.Deserialize(sourceStream);
+                }
+                catch (Exception e)
+                {
+                    throw new DeserializationException("Failed to deserialize object.", inputString, e);
+                }
+                sourceStream.Close();
             }
-            catch (Exception e)
-            {
-                throw new DeserializationException("Failed to deserialize object.", inputString, e);
-            }
-            sourceStream.Close();
-            sourceStream.Dispose();
             return returnObject;
         }
     }

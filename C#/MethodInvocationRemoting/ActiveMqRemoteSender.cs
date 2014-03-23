@@ -20,6 +20,7 @@ using System.Text;
 using Apache.NMS;
 using Apache.NMS.Util;
 using Apache.NMS.ActiveMQ;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -34,6 +35,8 @@ namespace MethodInvocationRemoting
     public class ActiveMqRemoteSender : ActiveMqRemoteConnectionBase, IRemoteSender, IDisposable
     {
         private IMessageProducer producer;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
 
         //******************************************************************************
         //
@@ -49,6 +52,27 @@ namespace MethodInvocationRemoting
         public ActiveMqRemoteSender(string connectUriName, string queueName, string messageFilter) 
             : base(connectUriName, queueName, messageFilter)
         {
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //******************************************************************************
+        //
+        // Method: ActiveMqRemoteSender (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.ActiveMqRemoteSender class.
+        /// </summary>
+        /// <param name="connectUriName">The unform resource identifier of the ActiveMQ broker to connect to.</param>
+        /// <param name="queueName">The name of the queue to connect to.</param>
+        /// <param name="messageFilter">The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public ActiveMqRemoteSender(string connectUriName, string queueName, string messageFilter, IApplicationLogger logger)
+            : this(connectUriName, queueName, messageFilter)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         //******************************************************************************
@@ -62,15 +86,18 @@ namespace MethodInvocationRemoting
         /// <param name="connectUriName">The uniform resource identifier of the ActiveMQ broker to connect to.</param>
         /// <param name="queueName">The name of the queue to connect to.</param>
         /// <param name="messageFilter">The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.</param>
+        /// <param name="logger">The logger to write log events to.</param>
         /// <param name="testConnectionFactory">A test (mock) NMS connection factory.</param>
         /// <param name="testConnection">A test (mock) NMS connection.</param>
         /// <param name="testSession">A test (mock) NMS session.</param>
         /// <param name="testDestination">A test (mock) NMS destination.</param>
         /// <param name="testProducer">A test (mock) NMS message producer.</param>
-        public ActiveMqRemoteSender(string connectUriName, string queueName, string messageFilter, IConnectionFactory testConnectionFactory, IConnection testConnection, ISession testSession, IDestination testDestination, IMessageProducer testProducer) 
+        public ActiveMqRemoteSender(string connectUriName, string queueName, string messageFilter, IApplicationLogger logger, IConnectionFactory testConnectionFactory, IConnection testConnection, ISession testSession, IDestination testDestination, IMessageProducer testProducer) 
             :base(connectUriName, queueName, messageFilter, testConnectionFactory, testConnection, testSession, testDestination) 
         {
             producer = testProducer;
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         //******************************************************************************
@@ -96,6 +123,8 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Error creating message producer.", e);
             }
+
+            loggingUtilities.Log(this, LogLevel.Information, "Connected to URI: '" + connectUriName + "', Queue: '" + queueName + "'.");
         }
 
         //******************************************************************************
@@ -113,6 +142,8 @@ namespace MethodInvocationRemoting
             {
                 producer.Close();
                 base.Disconnect();
+
+                loggingUtilities.Log(this, LogLevel.Information, "Disconnected.");
             }
         }
 
@@ -133,7 +164,11 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Error sending message.", e);
             }
+
+            loggingUtilities.Log(this, LogLevel.Information, "Message sent.");
         }
+
+        #region Finalize / Dispose Methods
 
         //******************************************************************************
         //
@@ -158,5 +193,7 @@ namespace MethodInvocationRemoting
             // Call Dispose in the base class.
             base.Dispose(disposing);
         }
+
+        #endregion
     }
 }

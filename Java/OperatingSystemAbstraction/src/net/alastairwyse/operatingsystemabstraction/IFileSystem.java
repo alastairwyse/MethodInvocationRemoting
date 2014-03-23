@@ -27,12 +27,12 @@ public interface IFileSystem {
      * @param path  The full path to the file.
      * @return      Whether the specified file exists.
      */
-    public Boolean CheckFileExists(String path);
+    Boolean CheckFileExists(String path);
     
     /**
      * Deletes the file specified by the given path.
      * @param path        The full path to the file.
      * @throws Exception  if an error occurs when attempting to delete the file.
      */
-    public void DeleteFile(String path) throws Exception;
+    void DeleteFile(String path) throws Exception;
 }

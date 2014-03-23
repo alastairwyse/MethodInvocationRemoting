@@ -20,12 +20,13 @@ import java.io.*;
 import java.net.*;
 import java.nio.*;
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Sends messages to a remote location via a TCP socket connection.
  * @author Alastair Wyse
  */
-public class TcpRemoteSender implements IRemoteSender {
+public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
 
     private InetAddress ipAddress;
     private int port;
@@ -35,13 +36,14 @@ public class TcpRemoteSender implements IRemoteSender {
     private int acknowledgementReceiveRetryInterval;
     private ISocketChannel socketChannel;
     private int messageSequenceNumber;
-    // The string encoding to use when sending a message.
+    private IApplicationLogger logger;
+    /** The string encoding to use when sending a message. */
     protected String stringEncodingCharset = "UTF-8";
-    // The byte which denotes the start of the message when sending.
+    /** The byte which denotes the start of the message when sending. */
     protected byte messageStartDelimiter = 0x02;
-    // The byte which denotes the end of the message when sending.
+    /** The byte which denotes the end of the message when sending. */
     protected byte messageEndDelimiter = 0x03;
-    // The byte which is expected to be received back from the TcpRemoteReceiver to acknowledge receipt of the message.
+    /** The byte which is expected to be received back from the TcpRemoteReceiver to acknowledge receipt of the message. */
     protected byte messageAcknowledgementByte = 0x06;
     
     /**
@@ -88,9 +90,9 @@ public class TcpRemoteSender implements IRemoteSender {
             throw new IllegalArgumentException("Argument 'acknowledgementReceiveRetryInterval' must be greater than or equal to 0.");
         }
         
-        if (socketChannel == null) {
-            socketChannel = new SocketChannel();
-        }
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        socketChannel = new SocketChannel();
+
         messageSequenceNumber = 1;
     }
     
@@ -102,10 +104,41 @@ public class TcpRemoteSender implements IRemoteSender {
      * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
      * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
      * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
-     * @throws UnknownHostException                if the specified IP address could not be resolved.
+     * @throws UnknownHostException                If the specified IP address could not be resolved.
      */
     public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval) throws UnknownHostException {
         this(InetAddress.getByName(ipAddress), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param logger                               The logger to write log events to.
+     */
+    public TcpRemoteSender(InetAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger) {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.logger = logger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param logger                               The logger to write log events to.
+     * @throws UnknownHostException                If the specified IP address could not be resolved.
+     */
+    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger) throws UnknownHostException {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.logger = logger;
     }
     
     /**
@@ -117,17 +150,18 @@ public class TcpRemoteSender implements IRemoteSender {
      * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
      * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
      * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param logger                               The logger to write log events to.
      * @param socketChannel                        A test (mock) socket channel.
-     * @throws UnknownHostException                if the specified IP address could not be resolved.
+     * @throws UnknownHostException                If the specified IP address could not be resolved.
      */
-    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, ISocketChannel socketChannel) throws UnknownHostException {
-        this(InetAddress.getByName(ipAddress), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, ISocketChannel socketChannel) throws UnknownHostException {
+        this(InetAddress.getByName(ipAddress), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger);
         this.socketChannel = socketChannel;
     }
     
     /**
      * Connects to the configured IP address and port.
-     * @throws Exception  if an error occurs while attempting to connect.
+     * @throws Exception  If an error occurs while attempting to connect.
      */
     public void Connect() throws Exception {
         if(socketChannel.isConnected() == true) {
@@ -138,12 +172,22 @@ public class TcpRemoteSender implements IRemoteSender {
     
     /**
      * Disconnects from the configured IP address and port.
-     * @throws Exception  if an error occurs while attempting to disconnect.
+     * @throws IOException  If an error occurs while attempting to disconnect.
+     * @throws Exception    If an error occurs while logging the disconnect operation.
      */
-    public void Disconnect() throws IOException {
+    public void Disconnect() throws IOException, Exception {
         if((socketChannel != null) && (socketChannel.isConnected() == true)) {
             socketChannel.close();
+            
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Disconnected.");
+            //[END_LOGGING] */
         }
+    }
+
+    @Override
+    public void close() throws IOException, Exception {
+        Disconnect();
     }
     
     @Override
@@ -160,6 +204,10 @@ public class TcpRemoteSender implements IRemoteSender {
         }
         
         IncrementMessageSequenceNumber();
+        
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Message sent and acknowledged.");
+        //[END_LOGGING] */
     }
 
     /**
@@ -172,13 +220,11 @@ public class TcpRemoteSender implements IRemoteSender {
             try {
                 socketChannel.open();
                 socketChannel.connect(new InetSocketAddress(ipAddress, port));
+                logger.Log(this, LogLevel.Information, "Connected to " + ipAddress.toString() + ":" + port + ".");
                 break;
             }
             catch (IOException ioException) {
-                // TODO: Placeholder for logging of IO exception
-                System.out.println(ioException.getClass().getSimpleName() + " occurred whilst trying to connect to " + ipAddress.toString() + ":" + port + ".");
-                System.out.println(ioException.getMessage());
-                ioException.printStackTrace(System.out);
+                logger.Log(this, LogLevel.Error, ioException.getClass().getSimpleName() + " occurred whilst trying to connect to " + ipAddress.toString() + ":" + port + ".", ioException);
                 if (connectRetryInterval > 0) {
                     Thread.sleep(connectRetryInterval);
                 }
@@ -282,26 +328,17 @@ public class TcpRemoteSender implements IRemoteSender {
      */
     private void HandleExceptionAndResend(Exception sendException, String message) throws Exception {
         if (sendException instanceof IOException) {
-            // TODO: Placeholder for logging of IO exception
-            System.out.println(sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.");
-            System.out.println(sendException.getMessage());
-            sendException.printStackTrace(System.out);
-
-            // TODO: Placeholder for logging of reconnect and resend
-            System.out.println("Disconnected from TCP socket.");
+            logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
+            logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
         }
         else if ((sendException instanceof java.nio.channels.ClosedChannelException) || (sendException instanceof MessageAcknowledgementTimeoutException)) {
-            // TODO: Placeholder for logging of exception
-            System.out.println(sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.");
-            System.out.println(sendException.getMessage());
-            sendException.printStackTrace(System.out);
+            logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
         }
         else {
             throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
         }
-        
-        // TODO: Placeholder for logging of reconnect and resend
-        System.out.println("Attempting to reconnect to TCP socket.");
+
+        logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
 
         socketChannel.close();
         AttemptConnect();

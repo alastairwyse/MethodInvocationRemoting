@@ -17,6 +17,7 @@
 package net.alastairwyse.methodinvocationremoting;
 
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Receives messages from a remote location via the file system.
@@ -31,6 +32,8 @@ public class FileRemoteReceiver implements IRemoteReceiver {
     private int readLoopTimeout;
     private volatile boolean waitingForTimeout = false;
     private volatile boolean cancelRequest;
+    private IApplicationLogger logger;
+    private LoggingUtilities loggingUtilities;
     
     /**
      * Initialises a new instance of the FileRemoteReceiver class.
@@ -50,21 +53,40 @@ public class FileRemoteReceiver implements IRemoteReceiver {
         this.messageFilePath = messageFilePath;
         this.lockFilePath = lockFilePath;
         this.readLoopTimeout = readLoopTimeout;
+
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        loggingUtilities = new LoggingUtilities(logger);
     }
     
+    /**
+     * Initialises a new instance of the FileRemoteReceiver class.
+     * @param messageFilePath  The full path of the file used to receive messages.
+     * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
+     * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
+     * @param logger           The logger to write log events to.
+     */
+    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IApplicationLogger logger) {
+        this(messageFilePath, lockFilePath, readLoopTimeout);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+    }
+        
     /**
      * Initialises a new instance of the FileRemoteReceiver class.
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
      * @param messageFilePath  The full path of the file used to receive messages.
      * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
      * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
+     * @param logger           The logger to write log events to.
      * @param messageFile      A test (mock) message file.
      * @param fileSystem       A test (mock) file system.
      */
-    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IFile messageFile, IFileSystem fileSystem) {
+    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IApplicationLogger logger, IFile messageFile, IFileSystem fileSystem) {
         this(messageFilePath, lockFilePath, readLoopTimeout);
         this.messageFile = messageFile;
         this.fileSystem = fileSystem;
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
     }
     
     @Override
@@ -78,6 +100,9 @@ public class FileRemoteReceiver implements IRemoteReceiver {
                     if (fileSystem.CheckFileExists(lockFilePath) == false) {
                         returnMessage = messageFile.ReadAll();
                         fileSystem.DeleteFile(messageFilePath);
+                        /* //[BEGIN_LOGGING]
+                        loggingUtilities.LogMessageReceived(this, returnMessage);
+                        //[END_LOGGING] */
                         break;
                     }
                 }
@@ -99,5 +124,13 @@ public class FileRemoteReceiver implements IRemoteReceiver {
     public void CancelReceive() {
         cancelRequest = true;
         while (waitingForTimeout == true) ;
+        
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Receive operation cancelled.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
     }
 }

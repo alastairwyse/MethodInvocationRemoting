@@ -30,7 +30,7 @@ public interface IServerSocketChannel {
      * Tells whether or not this channel is open.
      * @return  true if, and only if, this channel is open.
      */
-    public boolean isOpen();
+    boolean isOpen();
     
     /**
      * Binds the channel's socket to a local address and configures the socket to listen for connections. 
@@ -42,19 +42,19 @@ public interface IServerSocketChannel {
      * @throws IOException                      if some other I/O error occurs.
      * @throws SecurityException                if a security manager has been installed and its checkListen method denies the operation.
      */
-    public void bind (SocketAddress local, int backlog) throws AlreadyBoundException, UnsupportedAddressTypeException, ClosedChannelException, IOException, SecurityException;
+    void bind (SocketAddress local, int backlog) throws AlreadyBoundException, UnsupportedAddressTypeException, ClosedChannelException, IOException, SecurityException;
     
     /**
      * Opens a server-socket channel. 
      * @throws IOException  if an I/O error occurs.
      */
-    public void open() throws IOException;
+    void open() throws IOException;
 
     /**
      * Closes this channel.
      * @throws IOException  if an I/O error occurs.
      */
-    public void close() throws IOException;
+    void close() throws IOException;
     
     /**
      * Accepts a connection made to this channel's socket. 
@@ -66,7 +66,7 @@ public interface IServerSocketChannel {
      * @throws SecurityException           if a security manager has been installed and it does not permit access to the remote endpoint of the new connection.
      * @throws IOException                 if some other I/O error occurs.
      */
-    public ISocketChannel accept() throws ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, NotYetBoundException, SecurityException, IOException;
+    ISocketChannel accept() throws ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, NotYetBoundException, SecurityException, IOException;
     
     /**
      * Adjusts this channel's blocking mode. 
@@ -75,5 +75,5 @@ public interface IServerSocketChannel {
      * @throws ClosedChannelException  if this channel is closed.
      * @throws IOException             if an I/O error occurs.
      */
-    public SelectableChannel configureBlocking(boolean block) throws ClosedChannelException, IOException;
+    SelectableChannel configureBlocking(boolean block) throws ClosedChannelException, IOException;
 }

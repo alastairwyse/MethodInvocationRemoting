@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -36,6 +37,8 @@ namespace MethodInvocationRemoting
         private IRemoteReceiver receiver;
         private Thread receiveLoopThread;
         private volatile bool cancelRequest;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="E:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.MethodInvocationReceived"]/*'/>
         public event MethodInvocationReceivedEventHandler MethodInvocationReceived;
@@ -56,6 +59,27 @@ namespace MethodInvocationRemoting
             this.serializer = serializer;
             this.sender = sender;
             this.receiver = receiver;
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationRemoteReceiver class.
+        /// </summary>
+        /// <param name="serializer">Object to use to deserialize method invocations.</param>
+        /// <param name="sender">Object to use to send serialized method invocation return values.</param>
+        /// <param name="receiver">Object to use to receive serialized method invocations.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger)
+            : this(serializer, sender, receiver)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.Receive"]/*'/>
@@ -74,6 +98,7 @@ namespace MethodInvocationRemoting
                         {
                             IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
                             MethodInvocationReceived(this, new MethodInvocationReceivedEventArgs(receivedMethodInvocation));
+                            loggingUtilities.Log(this, LogLevel.Information, "Received method invocation '" + receivedMethodInvocation.Name + "'.");
                         }
                     }
                     catch (Exception e)
@@ -86,12 +111,13 @@ namespace MethodInvocationRemoting
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendReturnValue(System.Object)"]/*'/>
-        public void SendReturnValue(object ReturnValue)
+        public void SendReturnValue(object returnValue)
         {
             try
             {
-                string serializedReturnValue = serializer.SerializeReturnValue(ReturnValue);
+                string serializedReturnValue = serializer.SerializeReturnValue(returnValue);
                 sender.Send(serializedReturnValue);
+                loggingUtilities.Log(this, LogLevel.Information, "Sent return value.");
             }
             catch (Exception e)
             {
@@ -105,6 +131,7 @@ namespace MethodInvocationRemoting
             try
             {
                 sender.Send(serializer.VoidReturnValue);
+                loggingUtilities.Log(this, LogLevel.Information, "Sent void return value.");
             }
             catch (Exception e)
             {
@@ -118,6 +145,8 @@ namespace MethodInvocationRemoting
             cancelRequest = true;
             receiver.CancelReceive();
             receiveLoopThread.Join();
+
+            loggingUtilities.Log(this, LogLevel.Information, "Receive operation cancelled.");
         }
     }
 }

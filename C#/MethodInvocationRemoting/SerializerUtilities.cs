@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,21 +17,36 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using System.Collections;
 using System.IO;
 
 namespace MethodInvocationRemoting
 {
     //******************************************************************************
     //
-    // Class: MethodInvocationSerializerBase
+    // Class: SerializerUtilities
     //
     //******************************************************************************
     /// <summary>
-    /// Provides common base methods for classes which implement MethodInvocationRemoting.IMethodInvocationSerializer.
+    /// Contains common methods used for serialization.
     /// </summary>
-    public abstract class MethodInvocationSerializerBase
+    public class SerializerUtilities
     {
+        private Encoding characterEncoding;
+
+        //******************************************************************************
+        //
+        // Method: SerializerUtilities (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.SerializerUtilities class.
+        /// </summary>
+        /// <param name="characterEncoding">The character encoding to use when converting between underlying streams and strings.</param>
+        public SerializerUtilities(Encoding characterEncoding)
+        {
+            this.characterEncoding = characterEncoding;
+        }
+
         //******************************************************************************
         //
         // Method: ConvertStringToMemoryStream
@@ -42,10 +57,10 @@ namespace MethodInvocationRemoting
         /// </summary>
         /// <param name="inputString">The string to be converted.</param>
         /// <returns>The string converted to a MemoryStream.</returns>
-        protected MemoryStream ConvertStringToMemoryStream(string inputString)
+        public MemoryStream ConvertStringToMemoryStream(string inputString)
         {
             MemoryStream targetStream = new MemoryStream();
-            StreamWriter targetStreamWriter = new StreamWriter(targetStream);
+            StreamWriter targetStreamWriter = new StreamWriter(targetStream, characterEncoding);
 
             targetStreamWriter.Write(inputString);
             targetStreamWriter.Flush();
@@ -65,9 +80,9 @@ namespace MethodInvocationRemoting
         /// <param name="inputMemoryStream">The MemoryStream to be converted.</param>
         /// <returns>The contents of the MemoryStream.</returns>
         /// <remarks>Note that Position property of the MemoryStream will be altered.</remarks>
-        protected string ConvertMemoryStreamToString(MemoryStream inputMemoryStream)
+        public string ConvertMemoryStreamToString(MemoryStream inputMemoryStream)
         {
-            StreamReader sourceStreamReader = new StreamReader(inputMemoryStream);
+            StreamReader sourceStreamReader = new StreamReader(inputMemoryStream, characterEncoding);
             inputMemoryStream.Position = 0;
             return sourceStreamReader.ReadToEnd();
         }

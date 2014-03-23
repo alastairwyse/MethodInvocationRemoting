@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using OperatingSystemAbstraction;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -38,6 +39,8 @@ namespace MethodInvocationRemoting
         private int readLoopTimeout;
         private volatile bool waitingForTimeout = false;
         private volatile bool cancelRequest;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
         /// <summary>
         /// Indicates whether the object has been disposed.
         /// </summary>
@@ -67,7 +70,30 @@ namespace MethodInvocationRemoting
             this.messageFilePath = messageFilePath;
             this.lockFilePath = lockFilePath;
             this.readLoopTimeout = readLoopTimeout;
+
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+
             disposed = false;
+        }
+
+        //******************************************************************************
+        //
+        // Method: FileRemoteReceiver (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to receive messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="readLoopTimeout">The time to wait between attempts to read the file in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IApplicationLogger logger)
+            : this(messageFilePath, lockFilePath, readLoopTimeout)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         //******************************************************************************
@@ -81,13 +107,16 @@ namespace MethodInvocationRemoting
         /// <param name="messageFilePath">The full path of the file used to receive messages.</param>
         /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
         /// <param name="readLoopTimeout">The time to wait between attempts to read the file in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
         /// <param name="messageFile">A test (mock) message file.</param>
         /// <param name="fileSystem">A test (mock) file system.</param>
-        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IFile messageFile, IFileSystem fileSystem)
+        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IApplicationLogger logger, IFile messageFile, IFileSystem fileSystem)
             : this(messageFilePath, lockFilePath, readLoopTimeout)
         {
             this.messageFile = messageFile;
             this.fileSystem = fileSystem;
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteReceiver.Receive"]/*'/>
@@ -107,6 +136,7 @@ namespace MethodInvocationRemoting
                         {
                             returnMessage = messageFile.ReadAll();
                             fileSystem.DeleteFile(messageFilePath);
+                            loggingUtilities.LogMessageReceived(this, returnMessage);
                             break;
                         }
                     }
@@ -133,7 +163,9 @@ namespace MethodInvocationRemoting
         public void CancelReceive()
         {
             cancelRequest = true;
-            while (waitingForTimeout == true) ;
+            while (waitingForTimeout == true);
+
+            loggingUtilities.Log(this, LogLevel.Information, "Receive operation cancelled.");
         }
 
         #region Finalize / Dispose Methods

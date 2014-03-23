@@ -27,6 +27,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.*;
 import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Unit tests for class methodinvocationremoting.TcpRemoteSender.
@@ -47,7 +48,7 @@ public class TcpRemoteSenderTests {
     @Before
     public void setUp() throws Exception {
         mockSocketChannel = mock(ISocketChannel.class);
-        testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 3, 10, 25, 10, mockSocketChannel);
+        testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 3, 10, 25, 10, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
         // Setup test message
         testMessageByteArray = new byte[] { 0x3c, 0x41, 0x02, 0x42, 0x03, 0x43, 0x3e };  // Equivalent to '<A[ASCII message start]B[ASCII message end]C>'
         testMessageSequenceNumber = new byte[] { 1, 0, 0, 0 };  // Sequence number 1 (first sequence number sent after instantiating the class), encoded as a little endian
@@ -65,7 +66,7 @@ public class TcpRemoteSenderTests {
     @Test
     public void InvalidConnectRetryCountArgument() throws Exception {
         try {
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, -1, 1000, 60000, 100, mockSocketChannel);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, -1, 1000, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -76,7 +77,7 @@ public class TcpRemoteSenderTests {
     @Test
     public void InvalidConnectRetryIntervalArgument() throws Exception {
         try {
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 10, -1, 60000, 100, mockSocketChannel);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 10, -1, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -87,7 +88,7 @@ public class TcpRemoteSenderTests {
     @Test
     public void InvalidAcknowledgementReceiveTimeoutArgument() throws Exception {
         try {
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 100, 10, -1, 100, mockSocketChannel);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 100, 10, -1, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -98,7 +99,7 @@ public class TcpRemoteSenderTests {
     @Test
     public void InvalidAcknowledgementReceiveRetryIntervalArgument() throws Exception {
         try {
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 100, 10, 60000, -1, mockSocketChannel);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 100, 10, 60000, -1, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -191,6 +192,17 @@ public class TcpRemoteSenderTests {
     
     @Test
     public void DisconnectSuccessTest() throws Exception {
+        when(mockSocketChannel.isConnected()).thenReturn(true);
+        
+        testTcpRemoteSender.Disconnect();
+        
+        verify(mockSocketChannel).isConnected();
+        verify(mockSocketChannel).close();
+        verifyNoMoreInteractions(mockSocketChannel);
+    }
+    
+    @Test
+    public void CloseSuccessTest() throws Exception {
         when(mockSocketChannel.isConnected()).thenReturn(true);
         
         testTcpRemoteSender.Disconnect();
@@ -355,13 +367,14 @@ public class TcpRemoteSenderTests {
     @Test
     public void SendAcknowledgementNotReceivedReconnectSuccessTest() throws Exception {
         ByteBuffer acknowledgementBuffer = ByteBuffer.allocate(1);
+        testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 3, 10, 100, 40, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockSocketChannel);
         
         when(mockSocketChannel.isConnected())
             .thenReturn(false)
             .thenReturn(true)
             .thenReturn(true);
         when(mockSocketChannel.connect(new InetSocketAddress(InetAddress.getByName(testIpAddress), testPort))).thenReturn(true);
-        // This part is non-deterministic.  Parameter 'acknowledgementReceiveTimeout' is set to 25ms, and 'acknowledgementReceiveRetryInterval' set to 10ms.  Hence usually there should be 3 calls to read() before an exception is thrown.
+        // This part is non-deterministic.  Parameter 'acknowledgementReceiveTimeout' is set to 100ms, and 'acknowledgementReceiveRetryInterval' set to 40ms.  Hence usually there should be 3 calls to read() before an exception is thrown.
         //   However, if the test runs slowly it may be called less times, which will cause the test to fail
         when(mockSocketChannel.read(acknowledgementBuffer))
         	.thenReturn(0)

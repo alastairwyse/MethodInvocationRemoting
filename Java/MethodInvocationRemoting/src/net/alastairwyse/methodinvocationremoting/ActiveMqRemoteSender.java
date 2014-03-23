@@ -17,6 +17,7 @@
 package net.alastairwyse.methodinvocationremoting;
 
 import javax.jms.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Sends messages to a remote location via Apache ActiveMQ.
@@ -25,6 +26,7 @@ import javax.jms.*;
 public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implements IRemoteSender {
 
     private MessageProducer producer;
+    private IApplicationLogger logger;
     
     /**
      * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.
@@ -34,6 +36,19 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
      */
     public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter) {
         super(connectUriName, queueName, messageFilter);
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+    }
+    
+    /**
+     * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.
+     * @param connectUriName  The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName       The name of the queue to connect to.
+     * @param messageFilter   The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param logger          The logger to write log events to.
+     */
+    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IApplicationLogger logger) {
+        this(connectUriName, queueName, messageFilter);
+        this.logger = logger;
     }
     
     /**
@@ -42,15 +57,17 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
      * @param connectUriName         The uniform resource identifier of the ActiveMQ broker to connect to.
      * @param queueName              The name of the queue to connect to.
      * @param messageFilter          The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param logger                 The logger to write log events to.
      * @param testConnectionFactory  A test (mock) jms connection factory.
      * @param testConnection         A test (mock) jms connection.
      * @param testSession            A test (mock) jms session.
      * @param testDestination        A test (mock) jms destination.
      * @param testProducer           A test (mock) jms message producer.
      */
-    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageProducer testProducer) {
+    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IApplicationLogger logger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageProducer testProducer) {
         super(connectUriName, queueName, messageFilter, testConnectionFactory, testConnection, testSession, testDestination);
         producer = testProducer;
+        this.logger = logger;
     }
     
     @Override
@@ -64,6 +81,10 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
         catch (Exception e) {
             throw new Exception("Error creating message producer.", e);
         }
+        
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Connected to URI: '" + connectUriName + "', Queue: '" + queueName + "'.");
+        //[END_LOGGING] */
     }
 
     @Override
@@ -76,6 +97,10 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
                 throw new Exception("Error disconnecting from message queue.", e);
             }
             super.Disconnect();
+            
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Disconnected.");
+            //[END_LOGGING] */
         }
     }
 
@@ -90,5 +115,9 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
         catch (Exception e) {
             throw new Exception("Error sending message.", e);
         }
+        
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Message sent.");
+        //[END_LOGGING] */
     }
 }

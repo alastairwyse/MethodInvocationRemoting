@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project name="MethodInvocationRemoting" default="MethodInvocationRemotingJar">
+    <description>Ant build script for package methodinvocationremoting.  Allows preprocessing options during the compilation process (e.g. enabling of debug logging).  Courtesy of Andreas Schaefer (https://weblogs.java.net/blog/schaefa/archive/2005/01/how_to_do_condi.html)</description>
+
+	<property name="DestinationDirectory" value="../AntBuild"/>
+
+	<!-- Comment this section to disable logging -->
+	<property name="BeginLogging.token" value="*/"/>
+    <property name="EndLogging.token" value="/*"/>
+        
+
+    <!-- Uncomment this section to disable logging 
+    <property name="BeginLogging.token" value=""/>
+    <property name="EndLogging.token" value=""/>
+        -->
+       
+	<mkdir dir="${DestinationDirectory}/src/"/>
+	<mkdir dir="${DestinationDirectory}/bin/"/>
+    <delete>
+        <fileset dir="${DestinationDirectory}/src/" includes="**/*"/>
+    </delete>
+	<delete>
+        <fileset dir="${DestinationDirectory}/bin/" includes="**/*"/>
+    </delete>
+	<copy todir="${DestinationDirectory}/src/">
+        <fileset dir="../../MethodInvocationRemoting/src/">
+            <include name="**/*.java"/>
+        </fileset>
+        <filterset begintoken="//[" endtoken="]">
+            <filter token="BEGIN_LOGGING" value="${BeginLogging.token}"/>
+            <filter token="END_LOGGING" value="${EndLogging.token}"/>
+        </filterset>
+	</copy>
+	<!-- Build the OperatingSystemAbstraction project -->
+    <target name="OperatingSystemAbstraction" description="Compile OperatingSystemAbstraction" >
+        <javac srcdir="../../OperatingSystemAbstraction/src" destdir="${DestinationDirectory}/bin/"/>
+    	<jar destfile="${DestinationDirectory}/bin/net/alastairwyse/operatingsystemabstraction/operatingsystemabstraction.jar" basedir="${DestinationDirectory}/bin/net/alastairwyse/operatingsystemabstraction/"/>
+    </target>
+	<!-- Build the ApplicationLogging project -->
+    <target name="ApplicationLogging" depends="OperatingSystemAbstraction" description="Compile ApplicationLogging" >
+        <javac srcdir="../../ApplicationLogging/src" destdir="${DestinationDirectory}/bin/"/>
+    	<jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/applicationlogging.jar" basedir="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/"/>
+    </target>
+	<!-- Build the MethodInvocationRemoting project -->
+    <target name="MethodInvocationRemoting" depends="ApplicationLogging" description="Compile MethodInvocationRemoting" >
+        <javac srcdir="${DestinationDirectory}/src" destdir="${DestinationDirectory}/bin/">
+            <classpath>        
+                <pathelement location="../../Referenced Libraries/activemq-all-5.7.0.jar"/>  
+                <pathelement location="../../Referenced Libraries/commons-codec-1.9.jar"/>
+            </classpath>
+        </javac>
+    </target>
+	<!-- Create Jar for the OperatingSystemAbstraction project -->
+    <target name="OperatingSystemAbstractionJar" depends="MethodInvocationRemoting" description="Create OperatingSystemAbstraction Jar" >
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/operatingsystemabstraction/operatingsystemabstraction.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/operatingsystemabstraction/*.class"/>
+    </target>
+	<!-- Create Jar for the ApplicationLogging project -->
+    <target name="ApplicationLoggingJar" depends="OperatingSystemAbstractionJar" description="Create ApplicationLogging Jar" >
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/applicationlogging.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/applicationlogging/*.class"/>
+    </target>
+	<!-- Create Jar for the MethodInvocationRemoting project -->
+    <target name="MethodInvocationRemotingJar" depends="ApplicationLoggingJar" description="Create MethodInvocationRemoting Jar" >
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/methodinvocationremoting/methodinvocationremoting.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/methodinvocationremoting/*.class"/>
+    </target>
+</project>

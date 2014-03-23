@@ -25,25 +25,25 @@ public interface IFile {
     /**
      * @return  The full path to the file.
      */
-    public String getPath();
+    String getPath();
     
     /**
      * Sets the full path to the file.
      * @param path  The full path to the file.
      */
-    public void setPath(String path);
+    void setPath(String path);
     
     /**
      * Reads the entire contents of the file as a string.
      * @return     The contents of the file.
      * @exception  if an error occurs when attempting to read the file.
      */
-    public String ReadAll() throws Exception;
+    String ReadAll() throws Exception;
     
     /**
      * Overwrites the entire contents of the file with the specified string.
      * @param data  The data to write to the file.
      * @exception   if an error occurs when attempting to write to the file.
      */
-    public void WriteAll(String data) throws Exception;
+    void WriteAll(String data) throws Exception;
 }

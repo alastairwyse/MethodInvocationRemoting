@@ -22,6 +22,7 @@ using System.IO;
 using System.Xml;
 using System.Xml.Serialization;
 using System.Globalization;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -33,87 +34,69 @@ namespace MethodInvocationRemoting
     /// <summary>
     /// Implements serialization and deserialization of MethodInvocationRemoting.IMethodInvocation objects.
     /// </summary>
-    public class MethodInvocationSerializer : MethodInvocationSerializerBase, IMethodInvocationSerializer
+    public class MethodInvocationSerializer : IMethodInvocationSerializer
     {
         // Constants used in XML document
-        /// <summary>
-        /// The name of the root element in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the root element in the XML document written and read by the class.</summary>
         protected string rootElementName = "MethodInvocation";
-        /// <summary>
-        /// The name of the element storing the method name in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the method name in the XML document written and read by the class.</summary>
         protected string methodNameElementName = "MethodName";
-        /// <summary>
-        /// The name of the element storing the method parameters in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the method parameters in the XML document written and read by the class.</summary>
         protected string parametersElementName = "Parameters";
-        /// <summary>
-        /// The name of the element storing an individual method parameter in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing an individual method parameter in the XML document written and read by the class.</summary>
         protected string parameterElementName = "Parameter";
-        /// <summary>
-        /// The name of the element storing the data type of a method parameter, or return value in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the data type of a method parameter, or return value in the XML document written and read by the class.</summary>
         protected string dataTypeElementName = "DataType";
-        /// <summary>
-        /// The name of the element storing a method parameter, or return value in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing a method parameter, or return value in the XML document written and read by the class.</summary>
         protected string dataElementName = "Data";
-        /// <summary>
-        /// The name of the element storing the method return type in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the method return type in the XML document written and read by the class.</summary>
         protected string returnTypeElementName = "ReturnType";
-        /// <summary>
-        /// The name of the element storing the method return value in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the method return value in the XML document written and read by the class.</summary>
         protected string returnValueElementName = "ReturnValue";
-        /// <summary>
-        /// The name of the element storing the data type of an array element in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the data type of an array element in the XML document written and read by the class.</summary>
         protected string arrayElementDataTypeElementName = "ElementDataType";
-        /// <summary>
-        /// The name of the element storing the array element in the XML document written and read by the class.
-        /// </summary>
+        /// <summary>The name of the element storing the array element in the XML document written and read by the class.</summary>
         protected string arrayElementElementName = "Element";
         private const string voidReturnValueName = "void";
         private const string emptyIndicatorElementName = "Empty";
 
-        /// <summary>
-        /// The number of digits to write to the right of the decimal point when serializing System.Single objects.
-        /// </summary>
+        /// <summary>The number of digits to write to the right of the decimal point when serializing System.Single objects.</summary>
         protected int singleFloatingPointDigits = 8;
-        /// <summary>
-        /// The number of digits to write to the right of the decimal point when serializing System.Double objects.
-        /// </summary>
+        /// <summary>The number of digits to write to the right of the decimal point when serializing System.Double objects.</summary>
         protected int doubleFloatingPointDigits = 16;
-        /// <summary>
-        /// The System.Globalization.CultureInfo to use when serializing and deserializing.
-        /// </summary>
+        /// <summary>The System.Globalization.CultureInfo to use when serializing and deserializing.</summary>
         protected CultureInfo defaultCulture = CultureInfo.InvariantCulture;
+        /// <summary>The serializer utilities object to use for converting strings to streams and vice versa.</summary>
+        protected SerializerUtilities serializerUtilities;
 
         private ISerializerOperationMap operationMap;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="P:MethodInvocationRemoting.IMethodInvocationSerializer.VoidReturnValue"]/*'/>
         public string VoidReturnValue
         {
             get
             {
-                MemoryStream outputStream = new MemoryStream();
-                XmlWriter writer = XmlWriter.Create(outputStream);
+                string returnString = "";
 
-                try
+                using (MemoryStream outputStream = new MemoryStream())
+                using (XmlWriter writer = XmlWriter.Create(outputStream))
                 {
-                    writer.WriteElementString(returnTypeElementName, voidReturnValueName);
-                }
-                catch (Exception e)
-                {
-                    throw new SerializationException("Failed to serialize void return value.", e);
+                    try
+                    {
+                        writer.WriteElementString(returnTypeElementName, voidReturnValueName);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new SerializationException("Failed to serialize void return value.", e);
+                    }
+
+                    writer.Flush();
+                    returnString = serializerUtilities.ConvertMemoryStreamToString(outputStream);
+                    writer.Close();
                 }
 
-                writer.Flush();
-                string returnString = ConvertMemoryStreamToString(outputStream);
-                writer.Close();
                 return returnString;
             }
         }
@@ -129,7 +112,10 @@ namespace MethodInvocationRemoting
         /// <param name="operationMap">The serializer operation map to use to store mappings between object types and methods to serialize and deserialize the types.</param>
         public MethodInvocationSerializer(ISerializerOperationMap operationMap)
         {
+            serializerUtilities = new SerializerUtilities(Encoding.UTF8);
             this.operationMap = operationMap;
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
 
             operationMap.AddMapping(typeof(Int32), "integer", new XmlSerializationOperation(SerializeInt32), new XmlDeserializationOperation(DeserializeInt32));
             operationMap.AddMapping(typeof(String), "string", new XmlSerializationOperation(SerializeString), new XmlDeserializationOperation(DeserializeString));
@@ -155,37 +141,60 @@ namespace MethodInvocationRemoting
             operationMap.AddMapping(typeof(DateTime[]), "dateTimeArray", new XmlSerializationOperation(SerializeArray), new XmlDeserializationOperation(DeserializeArray));
         }
 
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationSerializer (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationSerializer class.
+        /// </summary>
+        /// <param name="operationMap">The serializer operation map to use to store mappings between object types and methods to serialize and deserialize the types.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public MethodInvocationSerializer(ISerializerOperationMap operationMap, IApplicationLogger logger)
+            : this(operationMap)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Serialize(MethodInvocationRemoting.IMethodInvocation)"]/*'/>
         public string Serialize(IMethodInvocation inputMethodInvocation)
         {
-            MemoryStream outputStream = new MemoryStream();
-            XmlWriter writer = XmlWriter.Create(outputStream);
+            string returnString = "";
 
-            try
+            using (MemoryStream outputStream = new MemoryStream())
+            using (XmlWriter writer = XmlWriter.Create(outputStream))
             {
-                // Write the root tag (e.g. <MethodInvocation>)
-                writer.WriteStartElement(rootElementName);
+                try
+                {
+                    // Write the root tag (e.g. <MethodInvocation>)
+                    writer.WriteStartElement(rootElementName);
 
-                // Write the method name
-                SerializeMethodName(inputMethodInvocation.Name, writer);
+                    // Write the method name
+                    SerializeMethodName(inputMethodInvocation.Name, writer);
 
-                // Write the parameters
-                SerializeParameters(inputMethodInvocation.Parameters, writer);
+                    // Write the parameters
+                    SerializeParameters(inputMethodInvocation.Parameters, writer);
 
-                // Write the return type
-                SerializeReturnType(inputMethodInvocation.ReturnType, writer);
+                    // Write the return type
+                    SerializeReturnType(inputMethodInvocation.ReturnType, writer);
 
-                // Write the root end tag (e.g. </MethodInvocation>)
-                writer.WriteEndElement();
+                    // Write the root end tag (e.g. </MethodInvocation>)
+                    writer.WriteEndElement();
+                }
+                catch (Exception e)
+                {
+                    throw new SerializationException("Failed to serialize invocation of method '" + inputMethodInvocation.Name + "'.", inputMethodInvocation, e);
+                }
+
+                writer.Flush();
+                returnString = serializerUtilities.ConvertMemoryStreamToString(outputStream);
+                writer.Close();
             }
-            catch (Exception e)
-            {
-                throw new SerializationException("Failed to serialize invocation of method '" + inputMethodInvocation.Name + "'.", inputMethodInvocation, e);
-            }
 
-            writer.Flush();
-            string returnString = ConvertMemoryStreamToString(outputStream);
-            writer.Close();
+            loggingUtilities.LogSerializedItem(this, returnString, "method invocation");
+
             return returnString;
         }
 
@@ -195,53 +204,64 @@ namespace MethodInvocationRemoting
             string methodName;
             ArrayList parameterArray;
             Type returnType = null;
-            MemoryStream sourceStream = ConvertStringToMemoryStream(serializedMethodInvocation);
-            XmlReader reader = XmlReader.Create(sourceStream);
 
-            try
+            using (MemoryStream sourceStream = serializerUtilities.ConvertStringToMemoryStream(serializedMethodInvocation))
+            using (XmlReader reader = XmlReader.Create(sourceStream))
             {
-                // Consume the root tag (e.g. <MethodInvocation>)
-                reader.ReadStartElement(rootElementName);
+                try
+                {
+                    // Consume the root tag (e.g. <MethodInvocation>)
+                    reader.ReadStartElement(rootElementName);
 
-                // Read the method name
-                methodName = DeserializeMethodName(reader);
+                    // Read the method name
+                    methodName = DeserializeMethodName(reader);
 
-                // Read the parameters
-                parameterArray = DeserializeParameters(reader);
+                    // Read the parameters
+                    parameterArray = DeserializeParameters(reader);
 
-                // Read the return type
-                returnType = DeserializeReturnType(reader);
+                    // Read the return type
+                    returnType = DeserializeReturnType(reader);
 
-                // Consume the root end tag (e.g. </MethodInvocation>)
-                reader.ReadEndElement();
+                    // Consume the root end tag (e.g. </MethodInvocation>)
+                    reader.ReadEndElement();
+                }
+                catch (Exception e)
+                {
+                    throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
+                }
+
+                reader.Close();
             }
-            catch (Exception e)
-            {
-                throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
-            }
 
-            reader.Close();
+            loggingUtilities.Log(this, LogLevel.Information, "Deserialized string to method invocation '" + methodName + "'.");
+
             return BuildMethodInvocation(methodName, parameterArray, returnType);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.SerializeReturnValue(System.Object)"]/*'/>
         public string SerializeReturnValue(object inputReturnValue)
         {
-            MemoryStream outputStream = new MemoryStream();
-            XmlWriter writer = XmlWriter.Create(outputStream);
+            string returnString = "";
 
-            try
+            using (MemoryStream outputStream = new MemoryStream())
+            using (XmlWriter writer = XmlWriter.Create(outputStream))
             {
-                SerializeItem(inputReturnValue, returnValueElementName, writer);
-            }
-            catch (Exception e)
-            {
-                throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
+                try
+                {
+                    SerializeItem(inputReturnValue, returnValueElementName, writer);
+                }
+                catch (Exception e)
+                {
+                    throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
+                }
+
+                writer.Flush();
+                returnString = serializerUtilities.ConvertMemoryStreamToString(outputStream);
+                writer.Close();
             }
 
-            writer.Flush();
-            string returnString = ConvertMemoryStreamToString(outputStream);
-            writer.Close();
+            loggingUtilities.LogSerializedItem(this, returnString, "return value");
+
             return returnString;
         }
 
@@ -249,21 +269,27 @@ namespace MethodInvocationRemoting
         public object DeserializeReturnValue(string serializedReturnValue)
         {
             object returnValue = null;
-            MemoryStream sourceStream = ConvertStringToMemoryStream(serializedReturnValue);
-            XmlReader reader = XmlReader.Create(sourceStream);
 
-            try
+            using (MemoryStream sourceStream = serializerUtilities.ConvertStringToMemoryStream(serializedReturnValue))
+            using (XmlReader reader = XmlReader.Create(sourceStream))
             {
-                // Skip over the XML header
-                reader.MoveToContent();
-                returnValue = DeserializeItem(returnValueElementName, reader);
-            }
-            catch (Exception e)
-            {
-                throw new DeserializationException("Failed to deserialize return value.", serializedReturnValue, e);
+                try
+                {
+                    // Skip over the XML header
+                    reader.MoveToContent();
+                    returnValue = DeserializeItem(returnValueElementName, reader);
+                }
+                catch (Exception e)
+                {
+                    throw new DeserializationException("Failed to deserialize return value.", serializedReturnValue, e);
+                }
+
+                reader.Close();
+
             }
 
-            reader.Close();
+            loggingUtilities.LogDeserializedReturnValue(this, returnValue);
+
             return returnValue;
         }
 
@@ -366,6 +392,7 @@ namespace MethodInvocationRemoting
                 for (int i = 0; i < parameters.Length; i = i + 1)
                 {
                     SerializeItem(parameters[i], parameterElementName, writer);
+                    loggingUtilities.LogParameter(this, "Serialized", parameters[i]);
                 }
             }
             // Write parameters end tag (e.g. </Parameters>)
@@ -485,6 +512,7 @@ namespace MethodInvocationRemoting
                     {
                         object parameter = DeserializeItem(parameterElementName, reader);
                         returnParameterArray.Add(parameter);
+                        loggingUtilities.LogParameter(this, "Deserialized", parameter);
                     }
                 }
                 // Consume parameters end tag (e.g. </Parameters>)

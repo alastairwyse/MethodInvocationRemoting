@@ -18,6 +18,7 @@ using System;
 using System.Collections.Generic;
 using System.Text;
 using OperatingSystemAbstraction;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -35,6 +36,8 @@ namespace MethodInvocationRemoting
         private IFile lockFile;
         private IFileSystem fileSystem;
         private string lockFilePath;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
         /// <summary>
         /// Indicates whether the object has been disposed.
         /// </summary>
@@ -65,7 +68,29 @@ namespace MethodInvocationRemoting
                 fileSystem = new FileSystem();
             }
             this.lockFilePath = lockFilePath;
+
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+
             disposed = false;
+        }
+
+        //******************************************************************************
+        //
+        // Method: FileRemoteSender (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to send messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public FileRemoteSender(string messageFilePath, string lockFilePath, IApplicationLogger logger)
+            : this(messageFilePath, lockFilePath)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         //******************************************************************************
@@ -78,15 +103,18 @@ namespace MethodInvocationRemoting
         /// </summary>
         /// <param name="messageFilePath">The full path of the file used to send messages.</param>
         /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="logger">The logger to write log events to.</param>
         /// <param name="messageFile">A test (mock) message file.</param>
         /// <param name="lockFile">A test (mock) lock file.</param>
         /// <param name="fileSystem">A test (mock) file system.</param>
-        public FileRemoteSender(string messageFilePath, string lockFilePath, IFile messageFile, IFile lockFile, IFileSystem fileSystem)
+        public FileRemoteSender(string messageFilePath, string lockFilePath, IApplicationLogger logger, IFile messageFile, IFile lockFile, IFileSystem fileSystem)
             : this(messageFilePath, lockFilePath)
         {
             this.messageFile = messageFile;
             this.lockFile = lockFile;
             this.fileSystem = fileSystem;
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteSender.Send(System.String)"]/*'/>
@@ -106,6 +134,8 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Error sending message.", e);
             }
+
+            loggingUtilities.Log(this, LogLevel.Information, "Message sent.");
         }
 
         #region Finalize / Dispose Methods

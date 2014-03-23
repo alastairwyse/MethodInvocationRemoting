@@ -26,7 +26,7 @@ public interface IRemoteReceiver {
      * Receives a message.
      * Receive operation should be synchronous, i.e. should not return control to the client until a message has been received.  If a message is not available, the receive operation should wait (block) until a message becomes available, and then receive it.
      * @return            The message received.
-     * @throws Exception  if an error occurs when attempting to receive a message.
+     * @throws Exception  If an error occurs when attempting to receive a message.
      */
     String Receive() throws Exception;
     

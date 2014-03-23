@@ -20,6 +20,7 @@ import java.net.*;
 import java.io.*;
 import java.nio.*;
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Represents the state of parsing a message received by the TcpRemoteReceiver class.
@@ -44,7 +45,7 @@ enum MessageParseState {
  * Receives messages from a remote location via a TCP socket connection.
  * @author Alastair Wyse
  */
-public class TcpRemoteReceiver implements IRemoteReceiver {
+public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
 
     private int port;
     private int connectRetryCount;
@@ -58,13 +59,15 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
     private volatile boolean cancelRequest;
     private volatile boolean waitingForRetry = false;
     private int lastMessageSequenceNumber;
-    // The string encoding to expect when receiving a message.
+    private IApplicationLogger logger;
+    private LoggingUtilities loggingUtilities;
+    /** The string encoding to expect when receiving a message. */
     protected String stringEncodingCharset = "UTF-8";
-    // The byte which denotes the start of the message.
+    /** The byte which denotes the start of the message. */
     protected byte messageStartDelimiter = 0x02;
-    // The byte which denotes the end of the message.
+    /** The byte which denotes the end of the message. */
     protected byte messageEndDelimiter = 0x03;
-    // The byte used to send back to the TcpRemoteSender to acknowledge receipt of the message.
+    /** The byte used to send back to the TcpRemoteSender to acknowledge receipt of the message. */
     protected byte messageAcknowledgementByte = 0x06;
 
     /**
@@ -105,14 +108,29 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
         else {
             throw new IllegalArgumentException("Argument 'socketReadBufferSize' must be greater than 0.");
         }
-        
-        if (serverSocketChannel == null) {
-            serverSocketChannel = new ServerSocketChannel();
-        }
 
+        serverSocketChannel = new ServerSocketChannel();
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        loggingUtilities = new LoggingUtilities(logger);
+        
         lastMessageSequenceNumber = 0;
         connected = false;
         pendingSocketChannel = null;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteReceiver class.
+     * @param port                  The port to listen for incoming connections on.
+     * @param connectRetryCount     The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.
+     * @param connectRetryInterval  The interval between retries to connect or reconnect in milliseconds.
+     * @param receiveRetryInterval  The time to wait between attempts to receive a message in milliseconds.
+     * @param socketReadBufferSize  The number of bytes to read from the socket in each read operation.
+     * @param logger                The logger to write log events to.
+     */
+    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IApplicationLogger logger) {
+        this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
     }
     
     /**
@@ -123,10 +141,11 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
      * @param connectRetryInterval  The interval between retries to connect or reconnect in milliseconds.
      * @param receiveRetryInterval  The time to wait between attempts to receive a message in milliseconds.
      * @param socketReadBufferSize  The number of bytes to read from the socket in each read operation.
+     * @param logger                The logger to write log events to.
      * @param serverSocketChannel   A test (mock) server socket channel.
      */
-    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IServerSocketChannel serverSocketChannel) {
-        this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize);
+    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IApplicationLogger logger, IServerSocketChannel serverSocketChannel) {
+        this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize, logger);
         this.serverSocketChannel = serverSocketChannel;
     }
     
@@ -157,6 +176,15 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
         catch(Exception e) {
             throw new Exception("Failed to disconnect listener.", e);
         }
+        
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Disconnected.");
+        //[END_LOGGING] */
+    }
+    
+    @Override
+    public void close() throws Exception {
+        Disconnect();
     }
     
     @Override
@@ -169,8 +197,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
         while (cancelRequest == false) {
             // Check if there are any pending connections which would indicate the TcpRemoteSender has encountered an error and reconnected
             if (PendingConnectionExists() == true) {
-                // TODO: Placeholder for logging of socket exception
-                System.out.println("New connection detected.  Attempting reconnect.");
+                logger.Log(this, LogLevel.Warning, "New connection detected.  Attempting reconnect.");
                 AttemptConnect();
             }
             
@@ -209,11 +236,13 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
                     if (messageSequenceNumber != lastMessageSequenceNumber) {
                         lastMessageSequenceNumber = messageSequenceNumber;
                         returnMessage = new String(messageBytes.array(), stringEncodingCharset);
+                        /* //[BEGIN_LOGGING]
+                        loggingUtilities.LogMessageReceived(this, returnMessage);
+                        //[END_LOGGING] */
                         break;
                     }
                     else {
-                        // TODO: Placeholder for logging of duplicate messages received
-                        System.out.println("Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
+                        logger.Log(this, LogLevel.Warning, "Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
                         // Reset variables
                         messageSequenceNumber = -1;
                         returnMessage = "";
@@ -235,6 +264,14 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
     public void CancelReceive() {
         cancelRequest = true;
         while (waitingForRetry == true);
+        
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Receive operation cancelled.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
     }
     
     /**
@@ -253,8 +290,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
     private void AttemptConnect() throws Exception {
         int connectAttempt = 0;
         
-        if (socketChannel != null)
-        {
+        if (socketChannel != null) {
             socketChannel.close();
         }
         socketChannel = null;
@@ -279,21 +315,18 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
                     pendingSocketChannel = null;
                     socketChannel.configureBlocking(false);
                     connected = true;
+                    logger.Log(this, LogLevel.Information, "Connection received on port " + port + ".");
                     break;
                 }
                 else {
-                    // TODO: Placeholder for logging of retry
-                    System.out.println("No pending connection requests on port " + port + ".");
+                    logger.Log(this, LogLevel.Warning, "No pending connection requests on port " + port + ".");
                     if (connectRetryInterval > 0) {
                         Thread.sleep(connectRetryInterval);
                     }
                 }
             }
             catch (IOException ioException) {
-                // TODO: Placeholder for logging of IO exception
-                System.out.println(ioException.getClass().getSimpleName() + " occurred whilst trying to to receive connection on port " + port + ".");
-                System.out.println(ioException.getMessage());
-                ioException.printStackTrace(System.out);
+                logger.Log(this, LogLevel.Error, ioException.getClass().getSimpleName() + " occurred whilst trying to to receive connection on port " + port + ".", ioException);
                 if (connectRetryInterval > 0) {
                     Thread.sleep(connectRetryInterval);
                 }
@@ -305,8 +338,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
             connectAttempt = connectAttempt + 1;
         }
 
-        if (connected == false)
-        {
+        if (connected == false) {
             throw new Exception("Failed to receive connection on port " + port + " after " + connectAttempt + " attempts.");
         }
     }
@@ -341,10 +373,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
             throw new Exception("Error receiving message.  Unhandled exception while checking for available data.", readException);
         }
         else {
-            // TODO: Placeholder for logging of exception
-            System.out.println(readException.getClass().getSimpleName() + " occurred whilst checking for available data.");
-            System.out.println(readException.getMessage());
-            readException.printStackTrace(System.out);
+            logger.Log(this, LogLevel.Error, readException.getClass().getSimpleName() + " occurred whilst checking for available data.", readException);
         }
         
         int receivedDataCount = 0;
@@ -537,17 +566,13 @@ public class TcpRemoteReceiver implements IRemoteReceiver {
             throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
         }
         else if (readException instanceof IOException) {
-            // TODO: Placeholder for logging of IO exception
-            System.out.println(readException.getClass().getSimpleName() + " occurred whilst checking for available data.");
-            System.out.println(readException.getMessage());
-            readException.printStackTrace(System.out);
+            logger.Log(this, LogLevel.Error, readException.getClass().getSimpleName() + " occurred whilst attempting to receive and acknowledge message.", readException);
         }
         else {
             throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
         }
         
-        // TODO: Placeholder for logging of reconnect 
-        System.out.println("Attempting to reconnect to and re-receive.");
+        logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
 
         ByteBuffer messageBytes = null; 
         AttemptConnect();

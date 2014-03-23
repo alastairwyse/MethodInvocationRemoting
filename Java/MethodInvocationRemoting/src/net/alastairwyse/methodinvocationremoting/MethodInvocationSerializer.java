@@ -22,6 +22,7 @@ import java.text.*;
 import java.math.*;
 import java.lang.reflect.*;
 import javax.xml.stream.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Implements serialization and deserialization of IMethodInvocation objects.
@@ -30,27 +31,43 @@ import javax.xml.stream.*;
 public class MethodInvocationSerializer implements IMethodInvocationSerializer {
 
     // Constants used in XML document
+    /** The name of the root element in the XML document written and read by the class. */
     protected String rootElementName = "MethodInvocation";
+    /** The name of the element storing the method name in the XML document written and read by the class. */
     protected String methodNameElementName = "MethodName";
+    /** The name of the element storing the method parameters in the XML document written and read by the class. */
     protected String parametersElementName = "Parameters";
+    /** The name of the element storing an individual method parameter in the XML document written and read by the class. */
     protected String parameterElementName = "Parameter";
+    /** The name of the element storing the data type of a method parameter, or return value in the XML document written and read by the class. */
     protected String dataTypeElementName = "DataType";
+    /** The name of the element storing a method parameter, or return value in the XML document written and read by the class. */
     protected String dataElementName = "Data";
+    /** The name of the element storing the method return type in the XML document written and read by the class. */
     protected String returnTypeElementName = "ReturnType";
+    /** The name of the element storing the method return value in the XML document written and read by the class. */
     protected String returnValueElementName = "ReturnValue";
+    /** The name of the element storing the array element in the XML document written and read by the class. */
     protected String arrayElementElementName = "Element";
+    /** The name of the element storing the data type of an array element in the XML document written and read by the class. */
     protected String arrayElementDataTypeElementName = "ElementDataType";
     private final String voidReturnValueName = "void";
     private final String emptyIndicatorElementName = "Empty";
     private final String xmlVersion = "1.0";
     private final String xmlEncoding = "utf-8";
 
+    /** The number of digits to write to the right of the decimal point when serializing java.lang.Float objects. */
     protected Integer singleFloatingPointDigits = 8;
+    /** The number of digits to write to the right of the decimal point when serializing java.lang.Double objects. */
     protected Integer doubleFloatingPointDigits = 16;
+    /** The java.util.Locale to use when serializing and deserializing. */
     protected Locale defaultLocale = Locale.US;
-    
+
+    /** The ArraySerializer object to use for serializing and deserializing array objects. */
     protected ArraySerializer genericArraySerializer;
     private ISerializerOperationMap operationMap;
+    private IApplicationLogger logger;
+    private LoggingUtilities loggingUtilities;
     
     /**
      * Initialises a new instance of the MethodInvocationSerializer class.
@@ -58,8 +75,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
      */
     public MethodInvocationSerializer(ISerializerOperationMap operationMap) {
         this.operationMap = operationMap;
-        
         genericArraySerializer = new ArraySerializer();
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        loggingUtilities = new LoggingUtilities(logger);
         
         operationMap.AddMapping(Integer.class, "integer", new IntegerSerializer());
         operationMap.AddMapping(String.class, "string", new StringSerializer());
@@ -85,12 +103,22 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
         operationMap.AddMapping(GregorianCalendar[].class, "dateTimeArray", genericArraySerializer);
     }
     
+    /**
+     * Initialises a new instance of the MethodInvocationSerializer class.
+     * @param operationMap  The serializer operation map to use for serializing and deserializing.
+     * @param logger        The logger to write log events to.
+     */
+    public MethodInvocationSerializer(ISerializerOperationMap operationMap, IApplicationLogger logger) {
+        this(operationMap);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+    }
+    
     @Override
     public String getVoidReturnValue() throws SerializationException {
         String returnString;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        
-        try {
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             XMLOutputFactory xmlFactory = XMLOutputFactory.newInstance();
             XMLStreamWriter writer = xmlFactory.createXMLStreamWriter(outputStream, xmlEncoding);
             
@@ -113,9 +141,8 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     @Override
     public String Serialize(IMethodInvocation inputMethodInvocation) throws SerializationException {
         String returnString;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        
-        try {
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
             XMLOutputFactory xmlFactory = XMLOutputFactory.newInstance();
             XMLStreamWriter writer = xmlFactory.createXMLStreamWriter(outputStream, xmlEncoding);
             
@@ -141,6 +168,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             outputStream.flush();
             returnString = outputStream.toString();
             writer.close();
+            
+            /* //[BEGIN_LOGGING]
+            loggingUtilities.LogSerializedItem(this, returnString, "method invocation");
+            //[END_LOGGING] */
         }
         catch (Exception e) {
             throw new SerializationException("Failed to serialize invocation of method '" + inputMethodInvocation.getName() + "'.", inputMethodInvocation, e);
@@ -155,11 +186,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
         ArrayList parameterArray;
         Class<?> returnType = null;
         MethodInvocation returnMethodInvocation;
-        ByteArrayInputStream sourceStream = new ByteArrayInputStream(serializedMethodInvocation.getBytes());
         XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
         // Set coalescing property so that text/character elements are are returned in a contiguous block
         xmlFactory.setProperty("javax.xml.stream.isCoalescing", true);
-        try {
+        try (ByteArrayInputStream sourceStream = new ByteArrayInputStream(serializedMethodInvocation.getBytes())) {
             XMLStreamReader reader = xmlFactory.createXMLStreamReader(sourceStream);
             SimplifiedXMLStreamReader simpleReader = new SimplifiedXMLStreamReader(reader);
             
@@ -180,6 +210,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             
             reader.close();
             returnMethodInvocation = BuildMethodInvocation(methodName, parameterArray, returnType);
+            
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Deserialized string to method invocation '" + methodName + "'.");
+            //[END_LOGGING] */
         }
         catch (Exception e) {
             throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
@@ -191,9 +225,8 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     @Override
     public String SerializeReturnValue(Object inputReturnValue) throws SerializationException {
         String returnString;
-        ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        
-        try {
+
+        try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()){
             XMLOutputFactory xmlFactory = XMLOutputFactory.newInstance();
             XMLStreamWriter writer = xmlFactory.createXMLStreamWriter(outputStream, xmlEncoding);
             
@@ -205,6 +238,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             outputStream.flush();
             returnString = outputStream.toString();
             writer.close();
+            
+            /* //[BEGIN_LOGGING]
+            loggingUtilities.LogSerializedItem(this, returnString, "return value");
+            //[END_LOGGING] */
         }
         catch (Exception e) {
             throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
@@ -217,11 +254,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     public Object DeserializeReturnValue(String serializedReturnValue) throws DeserializationException {
         Object returnValue = null;
         
-        ByteArrayInputStream sourceStream = new ByteArrayInputStream(serializedReturnValue.getBytes());
         XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
         // Set coalescing property so that text/character elements are are returned in a contiguous block
         xmlFactory.setProperty("javax.xml.stream.isCoalescing", true);
-        try {
+        try (ByteArrayInputStream sourceStream = new ByteArrayInputStream(serializedReturnValue.getBytes())) {
             XMLStreamReader reader = xmlFactory.createXMLStreamReader(sourceStream);
             SimplifiedXMLStreamReader simpleReader = new SimplifiedXMLStreamReader(reader);
 
@@ -230,6 +266,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             returnValue = DeserializeItem(simpleReader);
             
             reader.close();
+            
+            /* //[BEGIN_LOGGING]
+            loggingUtilities.LogDeserializedReturnValue(this, returnValue);
+            //[END_LOGGING] */
         }
         catch (Exception e) {
             throw new DeserializationException("Failed to deserialize return value.", serializedReturnValue, e);
@@ -297,6 +337,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             for (int i = 0; i < parameters.length; i = i + 1)
             {
                 SerializeItem(parameters[i], parameterElementName, writer);
+                /* //[BEGIN_LOGGING]
+                loggingUtilities.LogParameter(this, "Serialized", parameters[i]);
+                //[END_LOGGING] */
             }
         }
         // Write parameters end tag (e.g. </Parameters>)
@@ -387,6 +430,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             while(reader.getDepth() >= baseDepth) {
                 Object parameter = DeserializeItem(reader);
                 returnParameterArray.add(parameter);
+                /* //[BEGIN_LOGGING]
+                loggingUtilities.LogParameter(this, "Deserialized", parameter);
+                //[END_LOGGING] */
+
                 // Consume parameter start tag (e.g. <Parameter>)
                 //   If IsNextNodeStartElement() call returns false then the closing </Parameters> tag is consumed, baseDepth becomes lower than depth, and the loop will end
                 reader.IsNextNodeStartElement(parameterElementName);
@@ -735,7 +782,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
                 throw new Exception("BigDecimal value exceeds maximum allowed size of " + maxAllowedValue.toString() + ".");
             }
             
-            writer.writeCharacters(inputBigDecimal.toString());
+            writer.writeCharacters(inputBigDecimal.toPlainString());
         }
 
         @Override

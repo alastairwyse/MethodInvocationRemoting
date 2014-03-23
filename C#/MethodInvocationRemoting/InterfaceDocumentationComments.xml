@@ -70,7 +70,7 @@
             <summary>
             Passes the return value of the method invocation to the sender, after the method invocation has been completed.
             </summary>
-            <param name="ReturnValue">The return value.</param>
+            <param name="returnValue">The return value.</param>
         </member>
         <member name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendVoidReturn">
             <summary>

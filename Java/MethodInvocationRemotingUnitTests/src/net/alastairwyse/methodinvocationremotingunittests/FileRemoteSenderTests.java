@@ -23,6 +23,7 @@ import java.io.IOException;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Unit tests for class methodinvocationremoting.FileRemoteSender.
@@ -44,7 +45,7 @@ public class FileRemoteSenderTests {
     	mockMessageFile = mock(IFile.class);
     	mockLockFile = mock(IFile.class);
     	mockFileSystem = mock(IFileSystem.class);
-    	testFileRemoteSender = new FileRemoteSender(messageFilePath, lockFilePath, mockMessageFile, mockLockFile, mockFileSystem);
+    	testFileRemoteSender = new FileRemoteSender(messageFilePath, lockFilePath, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockMessageFile, mockLockFile, mockFileSystem);
     }
     
     @Test

@@ -31,19 +31,19 @@ public interface ISocketChannel {
      * Tells whether or not this channel's network socket is connected.
      * @return  true if, and only if, this channel's network socket is open and connected
      */
-    public boolean isConnected();
+    boolean isConnected();
     
     /**
      * Opens a socket channel.  Note this differs from the java.nio.channels.SocketChannel.open() method, as it assigns a new socket channel inside the class, rather than returning it.
      * @throws IOException  if an I/O error occurs.
      */
-    public void open() throws IOException;
+    void open() throws IOException;
     
     /**
      * Closes this channel.
      * @throws IOException  if an I/O error occurs.
      */
-    public void close() throws IOException;
+    void close() throws IOException;
     
     /**
      * Connects this channel's socket. 
@@ -59,7 +59,7 @@ public interface ISocketChannel {
      * @throws SecurityException                if a security manager has been installed and it does not permit access to the given remote endpoint.
      * @throws IOException                      if some other I/O error occurs.
      */
-    public boolean connect(SocketAddress remote) throws AlreadyConnectedException, ConnectionPendingException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, UnresolvedAddressException, UnsupportedAddressTypeException, SecurityException, IOException;
+    boolean connect(SocketAddress remote) throws AlreadyConnectedException, ConnectionPendingException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, UnresolvedAddressException, UnsupportedAddressTypeException, SecurityException, IOException;
     
     /**
      * Writes a sequence of bytes to this channel from the given buffer. 
@@ -71,7 +71,7 @@ public interface ISocketChannel {
      * @throws ClosedByInterruptException  if another thread interrupts the current thread while the write operation is in progress, thereby closing the channel and setting the current thread's interrupt status.
      * @throws IOException                 if some other I/O error occurs.
      */
-    public int write(ByteBuffer src) throws NotYetConnectedException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, IOException;
+    int write(ByteBuffer src) throws NotYetConnectedException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, IOException;
     
     /**
      * Reads a sequence of bytes from this channel into the given buffer. 
@@ -83,7 +83,7 @@ public interface ISocketChannel {
      * @throws ClosedByInterruptException  if another thread interrupts the current thread while the read operation is in progress, thereby closing the channel and setting the current thread's interrupt status.
      * @throws IOException                 if some other I/O error occurs.
      */
-    public int read(ByteBuffer dst) throws NotYetConnectedException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, IOException;
+    int read(ByteBuffer dst) throws NotYetConnectedException, ClosedChannelException, AsynchronousCloseException, ClosedByInterruptException, IOException;
     
     /**
      * Adjusts this channel's blocking mode. 
@@ -92,5 +92,5 @@ public interface ISocketChannel {
      * @throws ClosedChannelException  if this channel is closed.
      * @throws IOException             if an I/O error occurs.
      */
-    public SelectableChannel configureBlocking(boolean block) throws ClosedChannelException, IOException;
+    SelectableChannel configureBlocking(boolean block) throws ClosedChannelException, IOException;
 }

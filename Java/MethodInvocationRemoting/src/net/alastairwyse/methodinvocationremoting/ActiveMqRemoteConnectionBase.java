@@ -23,19 +23,29 @@ import org.apache.activemq.ActiveMQConnectionFactory;
  * Provides common connection functionality for classes connecting to an Apache ActiveMQ message broker.
  * @author Alastair Wyse
  */
-public abstract class ActiveMqRemoteConnectionBase {
+public abstract class ActiveMqRemoteConnectionBase implements AutoCloseable {
 
+    /** Used in the properties of a message to identify the message filter. */
     protected final String filterIdentifier = "Filter";
 
+    /** Uniform resource identifier of the ActiveMQ broker to connect to. */
     protected String connectUriName;
+    /** The name of the queue to connect to. */
     protected String queueName;
+    /** The value of the message filter. */
     protected String messageFilter;
+    /** The connection factory to use when connecting the ActiveMQ broker. */
     protected ConnectionFactory connectionFactory;
+    /** The connection to use when connecting the ActiveMQ broker. */
     protected Connection connection;
+    /** The session to use when connecting the ActiveMQ broker. */
     protected Session session;
+    /** The destination to use when connecting the ActiveMQ broker. */
     protected Destination destination;
+    /** Indicates whether the object is currently connected to the ActiveMQ broker. */
     protected boolean connected;
-    protected boolean testConstructor;  // Flag set when the class is instantiated using the test constructor
+    /** Indicates that the object was instantiated using the test constructor. */
+    protected boolean testConstructor;
     
     /**
      * @return        Indicates whether the object is currently connected to a remote queue.
@@ -81,7 +91,7 @@ public abstract class ActiveMqRemoteConnectionBase {
     
     /**
      * Connects to the message queue.
-     * @throws Exception  if a connection to the message queue is already open, or an error occurs when attempting to connect to the queue.
+     * @throws Exception  If a connection to the message queue is already open, or an error occurs when attempting to connect to the queue.
      */
     public void Connect() throws Exception {
         if(connected == true) {
@@ -119,6 +129,11 @@ public abstract class ActiveMqRemoteConnectionBase {
             }
             connected =  false;
         }
+    }
+    
+    @Override
+    public void close() throws Exception {
+        Disconnect();
     }
     
     /**

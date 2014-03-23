@@ -16,6 +16,8 @@
 
 package net.alastairwyse.methodinvocationremoting;
 
+import net.alastairwyse.applicationlogging.*;
+
 /**
  * Receives method invocations (represented by IMethodInvocation objects) from remote locations.
  * @author Alastair Wyse
@@ -28,6 +30,7 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
     private IMethodInvocationReceivedEventHandler receivedEventHandler;
     private Thread receiveLoopThread;
     private volatile boolean cancelRequest = false;
+    private IApplicationLogger logger;
     
     /**
      * Initialises a new instance of the MethodInvocationRemoteReceiver class.
@@ -39,6 +42,19 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         this.serializer = serializer;
         this.sender = sender;
         this.receiver = receiver;
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+    }
+    
+    /**
+     * Initialises a new instance of the MethodInvocationRemoteReceiver class.
+     * @param serializer  Object to use to deserialize method invocations.
+     * @param sender      Object to use to send serialized method invocation return values.
+     * @param receiver    Object to use to receive serialized method invocations.
+     * @param logger      The logger to write log events to.
+     */
+    public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger) {
+        this(serializer, sender, receiver);
+        this.logger = logger;
     }
     
     @Override
@@ -60,11 +76,14 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
     }
 
     @Override
-    public void SendReturnValue(Object ReturnValue) throws Exception {
+    public void SendReturnValue(Object returnValue) throws Exception {
         try
         {
-            String serializedReturnValue = serializer.SerializeReturnValue(ReturnValue);
+            String serializedReturnValue = serializer.SerializeReturnValue(returnValue);
             sender.Send(serializedReturnValue);
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Sent return value.");
+            //[END_LOGGING] */
         }
         catch (Exception e)
         {
@@ -77,6 +96,9 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         try
         {
             sender.Send(serializer.getVoidReturnValue());
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Sent void return value.");
+            //[END_LOGGING] */
         }
         catch (Exception e)
         {
@@ -89,6 +111,14 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         cancelRequest = true;
         receiver.CancelReceive();
         receiveLoopThread.join();
+        
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Receive operation cancelled.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
     }
 
     /**
@@ -111,6 +141,9 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
                     {
                         IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
                         receivedEventHandler.MethodInvocationReceived(outerClass, receivedMethodInvocation);
+                        /* //[BEGIN_LOGGING]
+                        logger.Log(outerClass, LogLevel.Information, "Received method invocation '" + receivedMethodInvocation.getName() + "'.");
+                        //[END_LOGGING] */
                     }
                 }
                 catch (Exception e) {

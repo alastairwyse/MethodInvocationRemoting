@@ -17,6 +17,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -33,6 +34,8 @@ namespace MethodInvocationRemoting
         private IMethodInvocationSerializer serializer;
         private IRemoteSender sender;
         private IRemoteReceiver receiver;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
 
         //------------------------------------------------------------------------------
         //
@@ -50,6 +53,27 @@ namespace MethodInvocationRemoting
             this.serializer = serializer;
             this.sender = sender;
             this.receiver = receiver;
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationRemoteSender class.
+        /// </summary>
+        /// <param name="serializer">Object to use to serialize method invocations.</param>
+        /// <param name="sender">Object to use to send serialized method invocations.</param>
+        /// <param name="receiver">Object to use to receive serialized method invocation return values.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger)
+            : this(serializer, sender, receiver)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteSender.InvokeMethod(MethodInvocationRemoting.IMethodInvocation)"]/*'/>
@@ -72,7 +96,9 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Failed to deserialize return value.", e);
             }
-            
+
+            loggingUtilities.Log(this, LogLevel.Information, "Invoked method '" + inputMethodInvocation.Name + "'.");
+
             return returnValue;
         }
 
@@ -90,6 +116,8 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Invocation of void method returned non-void.");
             }
+
+            loggingUtilities.Log(this, LogLevel.Information, "Invoked void method '" + inputMethodInvocation.Name + "'.");
         }
 
         //------------------------------------------------------------------------------

@@ -1,0 +1,82 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<!-- Comments for all interfaces and interface methods are included in this common file, so that the same comments can be used by the interfaces, and the classes that implement them -->
+<doc>
+  <assembly>
+    <name>ApplicationLogging</name>
+  </assembly>
+  <members>
+    <member name="T:ApplicationLogging.IApplicationLogger">
+      <summary>
+        Defines methods to record log events and information about an application (e.g. operational information, status, error/exception information, debug, etc...).
+      </summary>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(ApplicationLogging.LogLevel,System.String)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,ApplicationLogging.LogLevel,System.String)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="source">The object which created the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Int32,ApplicationLogging.LogLevel,System.String)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="eventIdentifier">An ID number which uniquely identifies the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,System.Int32,ApplicationLogging.LogLevel,System.String)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="source">The object which created the log event.</param>
+      <param name="eventIdentifier">An ID number which uniquely identifies the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(ApplicationLogging.LogLevel,System.String,System.Exception)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+      <param name="sourceException">The exception which caused the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,ApplicationLogging.LogLevel,System.String,System.Exception)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="source">The object which created the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+      <param name="sourceException">The exception which caused the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Int32,ApplicationLogging.LogLevel,System.String,System.Exception)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="eventIdentifier">An ID number which uniquely identifies the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+      <param name="sourceException">The exception which caused the log event.</param>
+    </member>
+    <member name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,System.Int32,ApplicationLogging.LogLevel,System.String,System.Exception)">
+      <summary>
+        Writes the log information.
+      </summary>
+      <param name="source">The object which created the log event.</param>
+      <param name="eventIdentifier">An ID number which uniquely identifies the log event.</param>
+      <param name="level">The level of importance of the log event.</param>
+      <param name="text">The details of the log event.</param>
+      <param name="sourceException">The exception which caused the log event.</param>
+    </member>
+  </members>
+</doc>

@@ -21,6 +21,7 @@ using NUnit.Framework;
 using NMock2;
 using Apache.NMS;
 using MethodInvocationRemoting;
+using ApplicationLogging;
 
 namespace MethodInvocationRemotingUnitTests
 {
@@ -56,7 +57,7 @@ namespace MethodInvocationRemotingUnitTests
             mockSession = mocks.NewMock<ISession>();
             mockDestination = mocks.NewMock<IDestination>();
             mockProducer = mocks.NewMock<IMessageProducer>();
-            testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
+            testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
         }
 
         [Test]

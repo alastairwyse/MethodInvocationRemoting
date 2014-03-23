@@ -19,6 +19,7 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using OperatingSystemAbstraction;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -61,6 +62,8 @@ namespace MethodInvocationRemoting
         private volatile bool cancelRequest;
         private volatile bool waitingForRetry = false;
         private int lastMessageSequenceNumber;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
         protected bool disposed;
         /// <summary>The string encoding to expect when receiving a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -114,14 +117,33 @@ namespace MethodInvocationRemoting
                 throw new ArgumentOutOfRangeException("receiveRetryInterval", "Argument 'receiveRetryInterval' must be greater than or equal to 0.");
             }
 
-            if (listener == null)
-            {
-                listener = new TcpListener(System.Net.IPAddress.Any, port);
-            }
+            listener = new TcpListener(System.Net.IPAddress.Any, port);
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
 
             lastMessageSequenceNumber = 0;
             connected = false;
             disposed = false;
+        }
+
+        //******************************************************************************
+        //
+        // Method: TcpRemoteReceiver (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.
+        /// </summary>
+        /// <param name="port">The port to listen for incoming connections on.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="receiveRetryInterval">The time to wait between attempts to receive a message in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IApplicationLogger logger)
+            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
         }
 
         //******************************************************************************
@@ -136,10 +158,12 @@ namespace MethodInvocationRemoting
         /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.</param>
         /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
         /// <param name="receiveRetryInterval">The time to wait between attempts to receive a message in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
         /// <param name="listener">A test (mock) TCP listener.</param>
-        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, ITcpListener listener) 
-            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval)
+        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IApplicationLogger logger, ITcpListener listener) 
+            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, logger)
         {
+            this.listener.Dispose();
             this.listener = listener;
         }
 
@@ -183,6 +207,8 @@ namespace MethodInvocationRemoting
             {
                 throw new Exception("Failed to disconnect listener.", e);
             }
+
+            loggingUtilities.Log(this, LogLevel.Information, "Disconnected.");
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteReceiver.Receive"]/*'/>
@@ -199,8 +225,7 @@ namespace MethodInvocationRemoting
                 // Check if there are any pending connections which would indicate the TcpRemoteSender has encountered an error and reconnected
                 if (listener.Pending() == true)
                 {
-                    // TODO: Placeholder for logging of socket exception
-                    Console.WriteLine("New connection detected.  Attempting reconnect.");
+                    logger.Log(this, LogLevel.Warning, "New connection detected.  Attempting reconnect.");
                     AttemptConnect();
                 }
 
@@ -240,12 +265,12 @@ namespace MethodInvocationRemoting
                         {
                             lastMessageSequenceNumber = messageSequenceNumber;
                             returnMessage = stringEncoding.GetString(messageBytes.ToArray());
+                            loggingUtilities.LogMessageReceived(this, returnMessage);
                             break;
                         }
                         else
                         {
-                            // TODO: Placeholder for logging of duplicate messages received
-                            Console.WriteLine("Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
+                            logger.Log(this, LogLevel.Warning, "Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
                             // Reset variables
                             messageSequenceNumber = -1;
                             returnMessage = "";
@@ -271,6 +296,8 @@ namespace MethodInvocationRemoting
             CheckConnected();
             cancelRequest = true;
             while (waitingForRetry == true);
+
+            loggingUtilities.Log(this, LogLevel.Information, "Receive operation cancelled.");
         }
 
         #region Private Methods
@@ -314,14 +341,12 @@ namespace MethodInvocationRemoting
                         DisposeClient();
                         client = listener.AcceptTcpClient();
                         connected = true;
+                        logger.Log(this, LogLevel.Information, "Connection received on port " + port + ".");
                         break;
                     }
                     catch (System.Net.Sockets.SocketException socketException)
                     {
-                        // TODO: Placeholder for logging of socket exception
-                        Console.WriteLine("SocketException with error code {0} occurred whilst attempting to receive connection on port {1}.", socketException.ErrorCode, port);
-                        Console.WriteLine(socketException.Message);
-                        Console.WriteLine(socketException.StackTrace);
+                        logger.Log(this, LogLevel.Error, "SocketException with error code " + socketException.ErrorCode + " occurred whilst attempting to receive connection on port " + port + ".", socketException);
                         if (connectRetryInterval > 0)
                         {
                             Thread.Sleep(connectRetryInterval);
@@ -334,8 +359,7 @@ namespace MethodInvocationRemoting
                 }
                 else
                 {
-                    // TODO: Placeholder for logging of retry
-                    Console.WriteLine("No pending connection requests on port " + port + ".");
+                    logger.Log(this, LogLevel.Warning, "No pending connection requests on port " + port + ".");
                     if (connectRetryInterval > 0)
                     {
                         Thread.Sleep(connectRetryInterval);
@@ -402,10 +426,7 @@ namespace MethodInvocationRemoting
         {
             if ((availableDataException is System.Net.Sockets.SocketException) || (availableDataException is ObjectDisposedException))
             {
-                // TODO: Placeholder for logging of exception
-                Console.WriteLine(availableDataException.GetType().Name + " occurred whilst attempting to get available data.");
-                Console.WriteLine(availableDataException.Message);
-                Console.WriteLine(availableDataException.StackTrace);
+                logger.Log(this, LogLevel.Error, availableDataException.GetType().Name + " occurred whilst attempting to get available data.", availableDataException);
             }
             else
             {
@@ -461,29 +482,21 @@ namespace MethodInvocationRemoting
 
             if (readException is System.IO.IOException)
             {
-                System.IO.IOException ioExpection = (System.IO.IOException)readException;
-                // TODO: Placeholder for logging of IO exception
-                Console.WriteLine("IOException occurred whilst attempting to receive and acknowledge message.");
-                Console.WriteLine(ioExpection.Message);
-                Console.WriteLine(ioExpection.StackTrace);
+                logger.Log(this, LogLevel.Error, "IOException occurred whilst attempting to receive and acknowledge message.", readException);
             }
             else if ( (readException is System.Net.Sockets.SocketException) ||
                       (readException is ObjectDisposedException) ||
                       (readException is InvalidOperationException) ||
                       (readException is NotSupportedException) )
             {
-                // TODO: Placeholder for logging of exception
-                Console.WriteLine(readException.GetType().Name + " occurred whilst attempting to receive and acknowledge message.");
-                Console.WriteLine(readException.Message);
-                Console.WriteLine(readException.StackTrace);
+                logger.Log(this, LogLevel.Error, readException.GetType().Name + " occurred whilst attempting to receive and acknowledge message.", readException);
             }
             else
             {
                 throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
             }
 
-            // TODO: Placeholder for logging of reconnect 
-            Console.WriteLine("Attempting to reconnect to and re-receive.");
+            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
 
             Queue<byte> messageBytes = new Queue<byte>();
             AttemptConnect();

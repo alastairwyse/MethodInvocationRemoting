@@ -879,9 +879,9 @@ public class MethodInvocationSerializerTests {
     
     @Test
     public void SerializeBigDecimalParameterSuccessTests() throws SerializationException {
-        String expectedSerializedMethodInvocation = "<?xml version=\"1.0\" encoding=\"utf-8\"?><MethodInvocation><MethodName>TestMethod</MethodName><Parameters><Parameter><DataType>integer</DataType><Data>9</Data></Parameter><Parameter><DataType>decimal</DataType><Data>-79228162514264337593543950335</Data></Parameter><Parameter><DataType>decimal</DataType><Data>79228162514264337593543950335</Data></Parameter><Parameter><DataType>integer</DataType><Data>8</Data></Parameter></Parameters><ReturnType><DataType>integer</DataType></ReturnType></MethodInvocation>";
+        String expectedSerializedMethodInvocation = "<?xml version=\"1.0\" encoding=\"utf-8\"?><MethodInvocation><MethodName>TestMethod</MethodName><Parameters><Parameter><DataType>integer</DataType><Data>9</Data></Parameter><Parameter><DataType>decimal</DataType><Data>-79228162514264337593543950335</Data></Parameter><Parameter><DataType>decimal</DataType><Data>79228162514264337593543950335</Data></Parameter><Parameter><DataType>decimal</DataType><Data>0.000000338641967689845557742</Data></Parameter><Parameter><DataType>integer</DataType><Data>8</Data></Parameter></Parameters><ReturnType><DataType>integer</DataType></ReturnType></MethodInvocation>";
 
-        String actualSerializedMethodInvocation = testMethodInvocationSerializer.Serialize(new MethodInvocation("TestMethod", new Object[] { (Integer)9, new BigDecimal("-79228162514264337593543950335"), new BigDecimal("79228162514264337593543950335"), (Integer)8 }, Integer.class));
+        String actualSerializedMethodInvocation = testMethodInvocationSerializer.Serialize(new MethodInvocation("TestMethod", new Object[] { (Integer)9, new BigDecimal("-79228162514264337593543950335"), new BigDecimal("79228162514264337593543950335"), new BigDecimal("0.000000338641967689845557742"), (Integer)8 }, Integer.class));
         assertEquals(expectedSerializedMethodInvocation, actualSerializedMethodInvocation);
     }
 

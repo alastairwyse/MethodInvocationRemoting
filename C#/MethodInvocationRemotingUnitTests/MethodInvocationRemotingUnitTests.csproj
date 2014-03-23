@@ -64,12 +64,18 @@
     <Compile Include="MethodInvocationSerializerTests.cs" />
     <Compile Include="MethodInvocationTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="RemoteReceiverDecompressorTests.cs" />
+    <Compile Include="RemoteSenderCompressorTests.cs" />
     <Compile Include="SerializerOperationMapTests.cs" />
     <Compile Include="SoapMethodInvocationSerializerTests.cs" />
     <Compile Include="TcpRemoteReceiverTests.cs" />
     <Compile Include="TcpRemoteSenderTests.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\ApplicationLogging\ApplicationLogging.csproj">
+      <Project>{A0893E6A-1B59-4B3A-AE68-1CA688063526}</Project>
+      <Name>ApplicationLogging</Name>
+    </ProjectReference>
     <ProjectReference Include="..\MethodInvocationRemoting\MethodInvocationRemoting.csproj">
       <Project>{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}</Project>
       <Name>MethodInvocationRemoting</Name>

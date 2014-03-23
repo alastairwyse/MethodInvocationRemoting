@@ -20,6 +20,7 @@ using System.Text;
 using System.Diagnostics;
 using System.Threading;
 using OperatingSystemAbstraction;
+using ApplicationLogging;
 
 namespace MethodInvocationRemoting
 {
@@ -41,6 +42,8 @@ namespace MethodInvocationRemoting
         private int acknowledgementReceiveRetryInterval;
         private ITcpClient client;
         private int messageSequenceNumber;
+        private IApplicationLogger logger;
+        private LoggingUtilities loggingUtilities;
         protected bool disposed;
         /// <summary>The string encoding to use when sending a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -67,11 +70,7 @@ namespace MethodInvocationRemoting
         /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
         public TcpRemoteSender(System.Net.IPAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval)
         {
-            if (this.ipAddress == null)
-            {
-                this.ipAddress = ipAddress;
-            }
-
+            this.ipAddress = ipAddress;
             this.port = port;
 
             if (connectRetryCount >= 0)
@@ -110,10 +109,10 @@ namespace MethodInvocationRemoting
                 throw new ArgumentOutOfRangeException("acknowledgementReceiveRetryInterval", "Argument 'acknowledgementReceiveRetryInterval' must be greater than or equal to 0.");
             }
 
-            if (client == null)
-            {
-                client = new TcpClient();
-            }
+            logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+            loggingUtilities = new LoggingUtilities(logger);
+            client = new TcpClient();
+
             messageSequenceNumber = 1;
             disposed = false;
         }
@@ -144,6 +143,51 @@ namespace MethodInvocationRemoting
         //
         //******************************************************************************
         /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public TcpRemoteSender(System.Net.IPAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger)
+            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //******************************************************************************
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger)
+            : this(System.Net.IPAddress.Parse("0.0.0.0"), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            this.ipAddress = System.Net.IPAddress.Parse(ipAddress);
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //******************************************************************************
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //******************************************************************************
+        /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
         /// <param name="ipAddress">The remote IP address to connect to.</param>
@@ -152,10 +196,12 @@ namespace MethodInvocationRemoting
         /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
         /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
         /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
         /// <param name="client">A test (mock) TCP client.</param>
-        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, ITcpClient client)
-            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, ITcpClient client)
+            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger)
         {
+            this.client.Dispose();
             this.client = client;
         }
 
@@ -191,6 +237,7 @@ namespace MethodInvocationRemoting
             if (client.Connected == true)
             {
                 client.Close();
+                loggingUtilities.Log(this, LogLevel.Information, "Disconnected.");
             }
         }
 
@@ -210,6 +257,8 @@ namespace MethodInvocationRemoting
             }
 
             IncrementMessageSequenceNumber();
+
+            loggingUtilities.Log(this, LogLevel.Information, "Message sent and acknowledged.");
         }
 
         //******************************************************************************
@@ -229,14 +278,12 @@ namespace MethodInvocationRemoting
                 try
                 {
                     client.Connect(ipAddress, port);
+                    logger.Log(this, LogLevel.Information, "Connected to " + ipAddress.ToString() + ":" + port + ".");
                     break;
                 }
                 catch (System.Net.Sockets.SocketException socketException)
                 {
-                    // TODO: Placeholder for logging of socket exception
-                    Console.WriteLine("SocketException with error code {0} occurred whilst trying to connect to {1}:{2}.", socketException.ErrorCode, ipAddress.ToString(), port);
-                    Console.WriteLine(socketException.Message);
-                    Console.WriteLine(socketException.StackTrace);
+                    logger.Log(this, LogLevel.Error, "SocketException with error code " + socketException.ErrorCode + " occurred whilst trying to connect to " + ipAddress.ToString() + ":" + port + ".", socketException);
                     if (connectRetryInterval > 0)
                     {
                         Thread.Sleep(connectRetryInterval);
@@ -244,10 +291,7 @@ namespace MethodInvocationRemoting
                 }
                 catch (System.Security.SecurityException securityException)
                 {
-                    // TODO: Placeholder for logging of security exception
-                    Console.WriteLine("SecurityException occurred whilst trying to connect to {0}:{1}.", ipAddress.ToString(), port);
-                    Console.WriteLine(securityException.Message);
-                    Console.WriteLine(securityException.StackTrace);
+                    logger.Log(this, LogLevel.Error, "SecurityException occurred whilst trying to connect to " + ipAddress.ToString() + ":" + port + ".", securityException);
                     if (connectRetryInterval > 0)
                     {
                         Thread.Sleep(connectRetryInterval);
@@ -351,10 +395,7 @@ namespace MethodInvocationRemoting
 
             if (sendException is System.IO.IOException)
             {
-                // TODO: Placeholder for logging of IO exception
-                Console.WriteLine(sendException.GetType().Name + " occurred whilst attempting to send message.");
-                Console.WriteLine(sendException.Message);
-                Console.WriteLine(sendException.StackTrace);
+                logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
 
                 // If the TCP client is still connected, the situation cannot be handled so re-throw the exception
                 if (client.Connected == true)
@@ -362,26 +403,21 @@ namespace MethodInvocationRemoting
                     throw new Exception("Error sending message.  IOException occurred when sending message, but client is reporting that it is still connected.", sendException);
                 }
 
-                // TODO: Placeholder for logging of reconnect and resend
-                Console.WriteLine("Disconnected from TCP socket.");
+                logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
             }
             else if ( (sendException is MessageAcknowledgementTimeoutException) ||
                       (sendException is System.Net.Sockets.SocketException) ||
                       (sendException is ObjectDisposedException) ||
                       (sendException is InvalidOperationException) )
             {
-                // TODO: Placeholder for logging of acknowledgement exception
-                Console.WriteLine(sendException.GetType().Name + " occurred whilst attempting to send message.");
-                Console.WriteLine(sendException.Message);
-                Console.WriteLine(sendException.StackTrace);
+                logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
             }
             else
             {
                 throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
             }
 
-            // TODO: Placeholder for logging of reconnect and resend
-            Console.WriteLine("Attempting to reconnect to TCP socket.");
+            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
 
             client.Close();
             AttemptConnect();

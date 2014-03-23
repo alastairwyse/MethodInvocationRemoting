@@ -151,5 +151,26 @@
             </summary>
             <param name="value">The byte to write to the stream.</param>
         </member>
+        <member name="T:OperatingSystemAbstraction.IStreamWriter">
+            <summary>
+                Provides an abstraction of the System.IO.StreamWriter class, to facilitate mocking and unit testing.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IStreamWriter.Close">
+            <summary>
+                Closes the current StreamWriter object and the underlying stream.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IStreamWriter.Flush">
+            <summary>
+               Clears all buffers for the current writer and causes any buffered data to be written to the underlying stream.
+            </summary>
+        </member>
+        <member name="M:OperatingSystemAbstraction.IStreamWriter.WriteLine(System.String)">
+            <summary>
+                Writes a string followed by a line terminator to the text string or stream.
+            </summary>
+            <param name="value">The string to write. If value is null, only the line terminator is written. </param>
+        </member>
     </members>
-</doc>
+  </doc>

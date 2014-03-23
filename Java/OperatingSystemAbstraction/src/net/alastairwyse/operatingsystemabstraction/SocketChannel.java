@@ -25,7 +25,7 @@ import java.nio.channels.*;
  * Provides an abstraction of the java.nio.channels.SocketChannel class, to facilitate mocking and unit testing.
  * @author Alastair Wyse
  */
-public class SocketChannel implements ISocketChannel {
+public class SocketChannel implements ISocketChannel, AutoCloseable {
     private java.nio.channels.SocketChannel socketChannel;
     // Following boolean is used to denote whether the overloaded constructor is used which injects the underlying java.nio.channels.SocketChannel
     private boolean injectedClient = false;

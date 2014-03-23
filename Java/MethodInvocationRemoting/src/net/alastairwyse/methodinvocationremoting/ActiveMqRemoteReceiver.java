@@ -17,6 +17,7 @@
 package net.alastairwyse.methodinvocationremoting;
 
 import javax.jms.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Receives messages from a remote location via Apache ActiveMQ.
@@ -28,6 +29,8 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
     private int connectLoopTimeout;
     private volatile boolean cancelRequest = false;
     private volatile boolean waitingForMessage = false;
+    private IApplicationLogger logger;
+    private LoggingUtilities loggingUtilities;
     
     /**
      * Initializes a new instance of the ActiveMqRemoteReceiver class.
@@ -39,6 +42,22 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
     public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout) {
         super(connectUriName, queueName, messageFilter);
         this.connectLoopTimeout = connectLoopTimeout;
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        loggingUtilities = new LoggingUtilities(logger);
+    }
+    
+    /**
+     * Initializes a new instance of the ActiveMqRemoteReceiver class.
+     * @param connectUriName      The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName           The name of the queue to connect to.
+     * @param messageFilter       The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param connectLoopTimeout  The time to wait for a message before retrying in milliseconds.
+     * @param logger              The logger to write log events to.
+     */
+    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IApplicationLogger logger) {
+        this(connectUriName, queueName, messageFilter, connectLoopTimeout);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
     }
     
     /**
@@ -48,16 +67,19 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
      * @param queueName              The name of the queue to connect to.
      * @param messageFilter          The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
      * @param connectLoopTimeout     The time to wait for a message before retrying in milliseconds.
+     * @param logger                 The logger to write log events to.
      * @param testConnectionFactory  A test (mock) jms connection factory.
      * @param testConnection         A test (mock) jms connection.
      * @param testSession            A test (mock) jms session.
      * @param testDestination        A test (mock) jms destination.
      * @param testConsumer           A test (mock) jms message consumer.
      */
-    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageConsumer testConsumer) {
+    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IApplicationLogger logger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageConsumer testConsumer) {
         super(connectUriName, queueName, messageFilter, testConnectionFactory, testConnection, testSession, testDestination);
         this.connectLoopTimeout = connectLoopTimeout;
         consumer = testConsumer;
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
     }
 
     @Override
@@ -71,6 +93,10 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
         catch (Exception e) {
             throw new Exception("Error creating message consumer.", e);
         }
+        
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Connected to URI: '" + connectUriName + "', Queue: '" + queueName + "'.");
+        //[END_LOGGING] */
     }
 
     @Override
@@ -83,6 +109,10 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
                 throw new Exception("Error disconnecting from message queue.", e);
             }
             super.Disconnect();
+            
+            /* //[BEGIN_LOGGING]
+            logger.Log(this, LogLevel.Information, "Disconnected.");
+            //[END_LOGGING] */
         }
     }
 
@@ -104,6 +134,9 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
                     if(receivedMessage instanceof TextMessage) {
                         TextMessage receivedTextMessage = (TextMessage) receivedMessage;
                         returnMessage = receivedTextMessage.getText();
+                        /* //[BEGIN_LOGGING]
+                        loggingUtilities.LogMessageReceived(this, returnMessage);
+                        //[END_LOGGING] */
                         break;
                     }
                     else {
@@ -126,5 +159,13 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
     public void CancelReceive() {
         cancelRequest = true;
         while (waitingForMessage == true);
+        
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Receive operation cancelled.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
     }
 }

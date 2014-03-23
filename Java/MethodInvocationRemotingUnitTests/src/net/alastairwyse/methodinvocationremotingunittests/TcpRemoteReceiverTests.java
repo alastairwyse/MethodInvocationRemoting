@@ -30,6 +30,7 @@ import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.*;
 import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
+import net.alastairwyse.applicationlogging.*;
 
 /**
  * Unit tests for class methodinvocationremoting.TcpRemoteReceiver.
@@ -48,7 +49,7 @@ public class TcpRemoteReceiverTests {
     public void setUp() throws Exception {
         mockServerSocketChannel = mock(IServerSocketChannel.class);
         mockSocketChannel = mock(ISocketChannel.class);
-        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, socketReadBufferSize, mockServerSocketChannel);
+        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, socketReadBufferSize, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
         // Setup test message
         byte[] testMessageBody = "<Data>ABC</Data>".getBytes(stringEncodingCharset);
         byte[] testMessageSequenceNumber = ByteBuffer.allocate(4).order(ByteOrder.LITTLE_ENDIAN).putInt(123).array();
@@ -65,7 +66,7 @@ public class TcpRemoteReceiverTests {
     @Test
     public void InvalidConnectRetryCountArgument() throws Exception {
         try {
-            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, -1, 10, 20, 32767, mockServerSocketChannel);
+            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, -1, 10, 20, 32767, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -76,7 +77,7 @@ public class TcpRemoteReceiverTests {
     @Test
     public void InvalidConnectRetryIntervalArgument() throws Exception {
         try {
-            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, -1, 20, 32767, mockServerSocketChannel);
+            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, -1, 20, 32767, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -87,7 +88,7 @@ public class TcpRemoteReceiverTests {
     @Test
     public void InvalidReceiveRetryIntervalArgument() throws Exception {
         try {
-            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, -1, 32767, mockServerSocketChannel);
+            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, -1, 32767, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -98,7 +99,7 @@ public class TcpRemoteReceiverTests {
     @Test
     public void InvalidSocketReadBufferSizeArgument() throws Exception {
         try {
-            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, 0, mockServerSocketChannel);
+            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, 0, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
             fail("Exception was not thrown.");
         }
         catch (IllegalArgumentException e) {
@@ -222,6 +223,28 @@ public class TcpRemoteReceiverTests {
     
     @Test
     public void  DisconnectSuccessTest() throws Exception {
+        when(mockServerSocketChannel.isOpen()).thenReturn(false);
+        when(mockServerSocketChannel.accept()).thenReturn(mockSocketChannel);
+        
+        testTcpRemoteReceiver.Connect();
+        testTcpRemoteReceiver.Disconnect();
+        
+        // Verifications for Connect()
+        verify(mockServerSocketChannel).isOpen();
+        verify(mockServerSocketChannel).open();
+        verify(mockServerSocketChannel).bind(new InetSocketAddress(testPort), 1);
+        verify(mockServerSocketChannel).configureBlocking(false);
+        verify(mockServerSocketChannel).accept();
+        verify(mockSocketChannel).configureBlocking(false);
+        // Verifications for Disconnect()
+        verify(mockSocketChannel).close();
+        verify(mockServerSocketChannel).close();
+        verifyNoMoreInteractions(mockServerSocketChannel);
+        verifyNoMoreInteractions(mockSocketChannel);
+    }
+    
+    @Test
+    public void  CloseSuccessTest() throws Exception {
         when(mockServerSocketChannel.isOpen()).thenReturn(false);
         when(mockServerSocketChannel.accept()).thenReturn(mockSocketChannel);
         
@@ -458,7 +481,7 @@ public class TcpRemoteReceiverTests {
             .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 18, 1, 1, true), 1))
             .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 19, 1, 1, true), 1));
 
-        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, 1, mockServerSocketChannel);
+        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, 1, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockServerSocketChannel);
         testTcpRemoteReceiver.Connect();
         String receivedMessage = testTcpRemoteReceiver.Receive();
         

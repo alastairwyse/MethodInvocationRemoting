@@ -36,10 +36,10 @@ public interface IMethodInvocationRemoteReceiver {
     
     /**
      * Passes the return value of the method invocation to the sender, after the method invocation has been completed.
-     * @param ReturnValue  The return value.
+     * @param returnValue  The return value.
      * @throws Exception   if an error occurs when sending the return value.
      */
-    public void SendReturnValue(Object ReturnValue) throws Exception;
+    public void SendReturnValue(Object returnValue) throws Exception;
     
     /**
      * Notifies the sender that the method invocation has been completed, in the case of a void method.

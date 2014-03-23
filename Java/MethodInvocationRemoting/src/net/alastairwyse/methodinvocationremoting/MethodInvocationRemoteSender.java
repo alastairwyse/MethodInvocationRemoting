@@ -16,6 +16,8 @@
 
 package net.alastairwyse.methodinvocationremoting;
 
+import net.alastairwyse.applicationlogging.*;
+
 /**
  * Sends method invocations (represented by IMethodInvocation objects) to remote locations.
  * @author Alastair Wyse
@@ -25,6 +27,7 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
     private IMethodInvocationSerializer serializer;
     private IRemoteSender sender;
     private IRemoteReceiver receiver;
+    private IApplicationLogger logger;
     
     /**
      * Initialises a new instance of the MethodInvocationRemoteSender class.
@@ -37,6 +40,19 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         this.serializer = serializer;
         this.sender = sender;
         this.receiver = receiver;
+        logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+    }
+    
+    /**
+     * Initialises a new instance of the MethodInvocationRemoteSender class.
+     * @param serializer  Object to use to serialize method invocations.
+     * @param sender      Object to use to send serialized method invocations.
+     * @param receiver    Object to use to send serialized method invocations.
+     * @param logger      The logger to write log events to.
+     */
+    public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger) {
+        this(serializer, sender, receiver);
+        this.logger = logger;
     }
     
     @Override
@@ -59,6 +75,14 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
             throw new DeserializationException("Failed to deserialize return value.", e);
         }
         
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Invoked method '" + inputMethodInvocation.getName() + "'.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
+        
         return returnValue;
     }
 
@@ -75,6 +99,14 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         {
             throw new Exception("Invocation of void method returned non-void.");
         }
+        
+        /* //[BEGIN_LOGGING]
+        try {
+            logger.Log(this, LogLevel.Information, "Invoked void method '" + inputMethodInvocation.getName() + "'.");
+        }
+        catch(Exception e) {
+        }
+        //[END_LOGGING] */
     }
     
     /**

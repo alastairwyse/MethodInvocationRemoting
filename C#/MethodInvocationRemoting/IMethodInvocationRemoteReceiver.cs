@@ -42,7 +42,7 @@ namespace MethodInvocationRemoting
         void Receive();
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendReturnValue(System.Object)"]/*'/>
-        void SendReturnValue(object ReturnValue);
+        void SendReturnValue(object returnValue);
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.SendVoidReturn"]/*'/>
         void SendVoidReturn();

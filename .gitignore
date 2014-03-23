@@ -1,0 +1,51 @@
+# Documentation folder
+Documentation/
+
+# C# Exclusions
+*.suo
+C\#/ApplicationLogging/bin/
+C\#/ApplicationLogging/obj/
+C\#/ApplicationLogging.Adapters/bin/
+C\#/ApplicationLogging.Adapters/obj/
+C\#/ApplicationLoggingUnitTests/bin/
+C\#/ApplicationLoggingUnitTests/obj/
+C\#/MethodInvocationRemoting/bin/
+C\#/MethodInvocationRemoting/obj/
+C\#/MethodInvocationRemotingUnitTests/bin/
+C\#/MethodInvocationRemotingUnitTests/obj/
+C\#/MethodInvocationRemotingLoggingTests/bin/
+C\#/MethodInvocationRemotingLoggingTests/obj/
+C\#/OperatingSystemAbstraction/bin/
+C\#/OperatingSystemAbstraction/obj/
+C\#/SampleApplication1/bin/
+C\#/SampleApplication1/obj/
+C\#/SampleApplication2/bin/
+C\#/SampleApplication2/obj/
+C\#/SampleApplication3/bin/
+C\#/SampleApplication3/obj/
+C\#/SampleApplication4/bin/
+C\#/SampleApplication4/obj/
+C\#/Referenced Libraries/log4net.dll
+C\#/Referenced Libraries/log4net.xml
+
+# Java Exclusions
+Java/ApplicationLogging/bin/
+Java/ApplicationLogging/doc/
+Java/ApplicationLogging.Adapters/bin/
+Java/ApplicationLogging.Adapters/doc/
+Java/ApplicationLoggingUnitTests/bin/
+Java/ApplicationLoggingUnitTests/doc/
+Java/MethodInvocationRemoting/bin/
+Java/MethodInvocationRemoting/doc/
+Java/MethodInvocationRemoting/AntBuild/
+Java/MethodInvocationRemotingUnitTests/bin/
+Java/MethodInvocationRemotingUnitTests/doc/
+Java/MethodInvocationRemotingLoggingTests/bin/
+Java/MethodInvocationRemotingLoggingTests/doc/
+Java/OperatingSystemAbstraction/bin/
+Java/OperatingSystemAbstraction/doc/
+Java/SampleApplication1/bin/
+Java/SampleApplication2/bin/
+Java/SampleApplication3/bin/
+Java/SampleApplication4/bin/
+Java/Referenced Libraries/log4j-1.2.17.jar
