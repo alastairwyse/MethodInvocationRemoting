@@ -21,9 +21,10 @@ import org.junit.Before;
 import org.junit.Test;
 import java.io.IOException;
 import static org.mockito.Mockito.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for class methodinvocationremoting.FileRemoteReceiver.
@@ -43,7 +44,7 @@ public class FileRemoteReceiverTests {
     public void setUp() throws Exception {
     	mockMessageFile = mock(IFile.class);
     	mockFileSystem = mock(IFileSystem.class);
-    	testFileRemoteReceiver = new FileRemoteReceiver(messageFilePath, lockFilePath, 1000, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockMessageFile, mockFileSystem);
+    	testFileRemoteReceiver = new FileRemoteReceiver(messageFilePath, lockFilePath, 1000, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockMessageFile, mockFileSystem);
     }
     
     @Test

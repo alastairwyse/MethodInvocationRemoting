@@ -29,7 +29,7 @@ namespace SampleApplication4
     /// <summary>
     /// The presenter layer of the Pi Approximator application.
     /// </summary>
-    class Presenter : IPresenter
+    public class Presenter : IPresenter
     {
         private IMainView mainView;
         private IModel model;

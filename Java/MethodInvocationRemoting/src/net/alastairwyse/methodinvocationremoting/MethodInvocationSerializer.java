@@ -23,6 +23,8 @@ import java.math.*;
 import java.lang.reflect.*;
 import javax.xml.stream.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Implements serialization and deserialization of IMethodInvocation objects.
@@ -68,6 +70,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private ISerializerOperationMap operationMap;
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the MethodInvocationSerializer class.
@@ -78,6 +81,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
         genericArraySerializer = new ArraySerializer();
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
         
         operationMap.AddMapping(Integer.class, "integer", new IntegerSerializer());
         operationMap.AddMapping(String.class, "string", new StringSerializer());
@@ -114,6 +118,29 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
         loggingUtilities = new LoggingUtilities(logger);
     }
     
+    /**
+     * Initialises a new instance of the MethodInvocationSerializer class.
+     * @param operationMap  The serializer operation map to use for serializing and deserializing.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationSerializer(ISerializerOperationMap operationMap, IMetricLogger metricLogger) {
+        this(operationMap);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the MethodInvocationSerializer class.
+     * @param operationMap  The serializer operation map to use for serializing and deserializing.
+     * @param logger        The logger to write log events to.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationSerializer(ISerializerOperationMap operationMap, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(operationMap);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
+    }
+    
     @Override
     public String getVoidReturnValue() throws SerializationException {
         String returnString;
@@ -140,6 +167,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
 
     @Override
     public String Serialize(IMethodInvocation inputMethodInvocation) throws SerializationException {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new MethodInvocationSerializeTime());
+        //[END_METRICS] */
+        
         String returnString;
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()) {
@@ -169,6 +200,11 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             returnString = outputStream.toString();
             writer.close();
             
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new MethodInvocationSerializeTime());
+            metricLogger.Increment(new MethodInvocationSerialized());
+            metricLogger.Add(new SerializedMethodInvocationSize(returnString.length()));
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             loggingUtilities.LogSerializedItem(this, returnString, "method invocation");
             //[END_LOGGING] */
@@ -182,6 +218,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
 
     @Override
     public MethodInvocation Deserialize(String serializedMethodInvocation) throws DeserializationException {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new MethodInvocationDeserializeTime());
+        //[END_METRICS] */
+        
         String methodName;
         ArrayList parameterArray;
         Class<?> returnType = null;
@@ -211,6 +251,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             reader.close();
             returnMethodInvocation = BuildMethodInvocation(methodName, parameterArray, returnType);
             
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new MethodInvocationDeserializeTime());
+            metricLogger.Increment(new MethodInvocationDeserialized());
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             logger.Log(this, LogLevel.Information, "Deserialized string to method invocation '" + methodName + "'.");
             //[END_LOGGING] */
@@ -224,6 +268,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
 
     @Override
     public String SerializeReturnValue(Object inputReturnValue) throws SerializationException {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new ReturnValueSerializeTime());
+        //[END_METRICS] */
+        
         String returnString;
 
         try (ByteArrayOutputStream outputStream = new ByteArrayOutputStream()){
@@ -239,6 +287,11 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             returnString = outputStream.toString();
             writer.close();
             
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new ReturnValueSerializeTime());
+            metricLogger.Increment(new ReturnValueSerialized());
+            metricLogger.Add(new SerializedReturnValueSize(returnString.length()));
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             loggingUtilities.LogSerializedItem(this, returnString, "return value");
             //[END_LOGGING] */
@@ -252,6 +305,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
 
     @Override
     public Object DeserializeReturnValue(String serializedReturnValue) throws DeserializationException {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new ReturnValueDeserializeTime());
+        //[END_METRICS] */
+        
         Object returnValue = null;
         
         XMLInputFactory xmlFactory = XMLInputFactory.newInstance();
@@ -267,6 +324,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             
             reader.close();
             
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new ReturnValueDeserializeTime());
+            metricLogger.Increment(new ReturnValueDeserialized());
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             loggingUtilities.LogDeserializedReturnValue(this, returnValue);
             //[END_LOGGING] */

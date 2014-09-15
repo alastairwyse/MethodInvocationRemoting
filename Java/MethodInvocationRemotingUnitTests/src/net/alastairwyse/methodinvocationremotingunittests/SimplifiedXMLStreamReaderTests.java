@@ -21,8 +21,6 @@ import static org.junit.Assert.*;
 import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import javax.xml.stream.*;
-
-import junit.framework.Assert;
 import net.alastairwyse.methodinvocationremoting.*;
 
 /**
@@ -37,7 +35,7 @@ public class SimplifiedXMLStreamReaderTests {
     public void ReadStartElementSuccessTests() throws XMLStreamException {
         SetupTestClass("<?xml version=\"1.0\" encoding=\"utf-8\"?><MethodInvocation><MethodName>TestMethod</MethodName><Parameters/><ReturnType/></MethodInvocation>");
         testSimplifiedXMLStreamReader.ReadStartElement("MethodInvocation");
-        Assert.assertEquals(1, testSimplifiedXMLStreamReader.getDepth());
+        assertEquals(1, testSimplifiedXMLStreamReader.getDepth());
     }
     
     @Test

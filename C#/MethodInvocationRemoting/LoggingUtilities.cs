@@ -35,11 +35,11 @@ namespace MethodInvocationRemoting
         private IApplicationLogger logger;
         private int stringLengthLimit;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LoggingUtilities (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.LoggingUtilities class.
         /// </summary>
@@ -50,11 +50,11 @@ namespace MethodInvocationRemoting
             this.logger = logger;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Log
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Writes a log entry if the logging preprocessor identifier is defined.
         /// </summary>
@@ -67,11 +67,11 @@ namespace MethodInvocationRemoting
             logger.Log(source, level, text);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogMessageReceived
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a received message if the logging preprocessor identifier is defined.
         /// </summary>
@@ -83,11 +83,11 @@ namespace MethodInvocationRemoting
             LogLongString("Received message", "Complete message content:", source, message);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogParameter
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a serialized or deserialized parameter.
         /// </summary>
@@ -107,11 +107,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogDeserializedReturnValue
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a deserialized return value.
         /// </summary>
@@ -130,11 +130,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogSerializedItem
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a serialized item (e.g. method invocation or return value) if the logging preprocessor identifier is defined.
         /// </summary>
@@ -147,11 +147,11 @@ namespace MethodInvocationRemoting
             LogLongString("Serialized " + itemType + " to string", "Complete string content:", source, serializedItem);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogDecompressedString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a decompressed string if the logging preprocessor identifier is defined.
         /// </summary>
@@ -163,11 +163,11 @@ namespace MethodInvocationRemoting
             LogLongString("Created decompressed string", "Complete string content:", source, inputString);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogCompressedString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a compressed string if the logging preprocessor identifier is defined.
         /// </summary>
@@ -179,11 +179,11 @@ namespace MethodInvocationRemoting
             LogLongString("Created compressed string", "Complete string content:", source, inputString);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: LogLongString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Logs details of a large string, and truncates the information level logging if longer than the definied limit.
         /// </summary>

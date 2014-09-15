@@ -1,0 +1,94 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{CBEB0A28-6632-479A-A6DF-C20A41C050A4}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ApplicationMetrics</RootNamespace>
+    <AssemblyName>ApplicationMetrics</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Debug\ApplicationMetrics.xml</DocumentationFile>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+    <DocumentationFile>bin\Release\ApplicationMetrics.XML</DocumentationFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\SolutionInfo.cs">
+      <Link>SolutionInfo.cs</Link>
+    </Compile>
+    <Compile Include="AmountMetric.cs" />
+    <Compile Include="AmountMetricEventInstance.cs" />
+    <Compile Include="AmountMetricTotalContainer.cs" />
+    <Compile Include="ApplicationMetricsUtilities.cs" />
+    <Compile Include="ConsoleMetricLogger.cs" />
+    <Compile Include="ConsoleMetricLoggerImplementation.cs" />
+    <Compile Include="CountMetric.cs" />
+    <Compile Include="CountMetricEventInstance.cs" />
+    <Compile Include="CountMetricTotalContainer.cs" />
+    <Compile Include="ExceptionThrower.cs" />
+    <Compile Include="FileMetricLogger.cs" />
+    <Compile Include="FileMetricLoggerImplementation.cs" />
+    <Compile Include="IExceptionHandler.cs" />
+    <Compile Include="IMetricAggregateLogger.cs" />
+    <Compile Include="IMetricLogger.cs" />
+    <Compile Include="IntervalMetric.cs" />
+    <Compile Include="IntervalMetricEventInstance.cs" />
+    <Compile Include="IntervalMetricTotalContainer.cs" />
+    <Compile Include="MetricAggregateContainer.cs" />
+    <Compile Include="MetricAggregateContainerBase.cs" />
+    <Compile Include="MetricAggregateLogger.cs" />
+    <Compile Include="MetricBase.cs" />
+    <Compile Include="MetricEventInstance.cs" />
+    <Compile Include="MetricLoggerBuffer.cs" />
+    <Compile Include="MetricLoggerStorer.cs" />
+    <Compile Include="MicrosoftAccessMetricLogger.cs" />
+    <Compile Include="MicrosoftAccessMetricLoggerImplementation.cs" />
+    <Compile Include="NullMetricLogger.cs" />
+    <Compile Include="PerformanceCounterMetricLogger.cs" />
+    <Compile Include="PerformanceCounterMetricLoggerImplementation.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="StatusMetric.cs" />
+    <Compile Include="StatusMetricEventInstance.cs" />
+    <Compile Include="StatusMetricValueContainer.cs" />
+    <Compile Include="TimeUnit.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="InterfaceDocumentationComments.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\OperatingSystemAbstraction\OperatingSystemAbstraction.csproj">
+      <Project>{0AD197AE-27BD-4532-AFF9-DDC40EA02295}</Project>
+      <Name>OperatingSystemAbstraction</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

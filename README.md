@@ -14,3 +14,5 @@ Whilst remote method invocation is already available between C# and Java using p
 Both the C# and Java projects include extensive unit tests to allow for easier extension and refactoring of the code.
 
 For detailed information including explanation of the operation of the classes and sample applications, see http://www.oraclepermissiongenerator.net/methodinvocationremoting/
+
+Detailed logging and instrumentation is available from all major classes in MethodInvocationRemoting using the ApplicationLogging and ApplicationMetrics projects. These two projects are decoupled from MethodInvocationRemoting (interaction is through clearly defined interfaces) and are standalone frameworks in their own right with multiple implementations, which could easily be utilized by other client applications and frameworks.

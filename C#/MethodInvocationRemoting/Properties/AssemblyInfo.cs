@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("MethodInvocationRemoting")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Framework which allows methods to be invoked remotely between C# and Java")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("MethodInvocationRemoting")]

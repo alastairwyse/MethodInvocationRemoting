@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Text;
 using System.Threading;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -39,6 +41,7 @@ namespace MethodInvocationRemoting
         private volatile bool cancelRequest;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="E:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.MethodInvocationReceived"]/*'/>
         public event MethodInvocationReceivedEventHandler MethodInvocationReceived;
@@ -61,6 +64,7 @@ namespace MethodInvocationRemoting
             this.receiver = receiver;
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
         }
 
         //------------------------------------------------------------------------------
@@ -82,6 +86,45 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationRemoteReceiver class.
+        /// </summary>
+        /// <param name="serializer">Object to use to deserialize method invocations.</param>
+        /// <param name="sender">Object to use to send serialized method invocation return values.</param>
+        /// <param name="receiver">Object to use to receive serialized method invocations.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IMetricLogger metricLogger)
+            : this(serializer, sender, receiver)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationRemoteReceiver class.
+        /// </summary>
+        /// <param name="serializer">Object to use to deserialize method invocations.</param>
+        /// <param name="sender">Object to use to send serialized method invocation return values.</param>
+        /// <param name="receiver">Object to use to receive serialized method invocations.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(serializer, sender, receiver)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationRemoteReceiver.Receive"]/*'/>
         public void Receive()
         {
@@ -96,6 +139,8 @@ namespace MethodInvocationRemoting
                         string serializedMethodInvocation = receiver.Receive();
                         if (serializedMethodInvocation != "")
                         {
+                            metricsUtilities.Begin(new RemoteMethodReceiveTime());
+
                             IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
                             MethodInvocationReceived(this, new MethodInvocationReceivedEventArgs(receivedMethodInvocation));
                             loggingUtilities.Log(this, LogLevel.Information, "Received method invocation '" + receivedMethodInvocation.Name + "'.");
@@ -107,6 +152,7 @@ namespace MethodInvocationRemoting
                     }
                 }
             });
+            receiveLoopThread.Name = "MethodInvocationRemoting.MethodInvocationRemoteReceiver message receive worker thread.";
             receiveLoopThread.Start();
         }
 
@@ -117,6 +163,8 @@ namespace MethodInvocationRemoting
             {
                 string serializedReturnValue = serializer.SerializeReturnValue(returnValue);
                 sender.Send(serializedReturnValue);
+                metricsUtilities.End(new RemoteMethodReceiveTime());
+                metricsUtilities.Increment(new RemoteMethodReceived());
                 loggingUtilities.Log(this, LogLevel.Information, "Sent return value.");
             }
             catch (Exception e)
@@ -131,6 +179,8 @@ namespace MethodInvocationRemoting
             try
             {
                 sender.Send(serializer.VoidReturnValue);
+                metricsUtilities.End(new RemoteMethodReceiveTime());
+                metricsUtilities.Increment(new RemoteMethodReceived());
                 loggingUtilities.Log(this, LogLevel.Information, "Sent void return value.");
             }
             catch (Exception e)

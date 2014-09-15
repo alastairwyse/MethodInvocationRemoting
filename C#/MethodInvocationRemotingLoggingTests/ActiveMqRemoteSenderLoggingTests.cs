@@ -22,6 +22,7 @@ using NMock2;
 using Apache.NMS;
 using MethodInvocationRemoting;
 using ApplicationLogging;
+using ApplicationMetrics;
 
 namespace MethodInvocationRemotingLoggingTests
 {
@@ -60,7 +61,7 @@ namespace MethodInvocationRemotingLoggingTests
             mockDestination = mocks.NewMock<IDestination>();
             mockProducer = mocks.NewMock<IMessageProducer>();
             mockApplicationLogger = mocks.NewMock<IApplicationLogger>();
-            testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, mockApplicationLogger, mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
+            testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, mockApplicationLogger, new NullMetricLogger(), mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
         }
 
         [Test]

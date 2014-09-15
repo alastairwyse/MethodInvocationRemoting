@@ -29,7 +29,7 @@ namespace SampleApplication4
     /// <summary>
     /// The model layer of the Pi Approximator application.
     /// </summary>
-    class Model : IModel
+    public class Model : IModel
     {
         private static int maxScenarioLimit = 2000;
         private IMethodInvocationRemoteSender methodInvocationSender;

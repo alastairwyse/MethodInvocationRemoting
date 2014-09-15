@@ -18,6 +18,8 @@ package net.alastairwyse.methodinvocationremoting;
 
 import javax.jms.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Receives messages from a remote location via Apache ActiveMQ.
@@ -31,6 +33,7 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
     private volatile boolean waitingForMessage = false;
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     
     /**
      * Initializes a new instance of the ActiveMqRemoteReceiver class.
@@ -44,6 +47,7 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
         this.connectLoopTimeout = connectLoopTimeout;
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -61,6 +65,35 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
     }
     
     /**
+     * Initializes a new instance of the ActiveMqRemoteReceiver class.
+     * @param connectUriName      The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName           The name of the queue to connect to.
+     * @param messageFilter       The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param connectLoopTimeout  The time to wait for a message before retrying in milliseconds.
+     * @param metricLogger        The metric logger to write metric and instrumentation events to.
+     */
+    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IMetricLogger metricLogger) {
+        this(connectUriName, queueName, messageFilter, connectLoopTimeout);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initializes a new instance of the ActiveMqRemoteReceiver class.
+     * @param connectUriName      The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName           The name of the queue to connect to.
+     * @param messageFilter       The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param connectLoopTimeout  The time to wait for a message before retrying in milliseconds.
+     * @param logger              The logger to write log events to.
+     * @param metricLogger        The metric logger to write metric and instrumentation events to.
+     */
+    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(connectUriName, queueName, messageFilter, connectLoopTimeout);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
      * Initializes a new instance of the ActiveMqRemoteReceiver class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
      * @param connectUriName         The uniform resource identifier of the ActiveMQ broker to connect to.
@@ -68,18 +101,20 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
      * @param messageFilter          The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
      * @param connectLoopTimeout     The time to wait for a message before retrying in milliseconds.
      * @param logger                 The logger to write log events to.
+     * @param metricLogger           The metric logger to write metric and instrumentation events to.
      * @param testConnectionFactory  A test (mock) jms connection factory.
      * @param testConnection         A test (mock) jms connection.
      * @param testSession            A test (mock) jms session.
      * @param testDestination        A test (mock) jms destination.
      * @param testConsumer           A test (mock) jms message consumer.
      */
-    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IApplicationLogger logger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageConsumer testConsumer) {
+    public ActiveMqRemoteReceiver(String connectUriName, String queueName, String messageFilter, int connectLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageConsumer testConsumer) {
         super(connectUriName, queueName, messageFilter, testConnectionFactory, testConnection, testSession, testDestination);
         this.connectLoopTimeout = connectLoopTimeout;
         consumer = testConsumer;
         this.logger = logger;
         loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
     }
 
     @Override
@@ -134,6 +169,10 @@ public class ActiveMqRemoteReceiver extends ActiveMqRemoteConnectionBase impleme
                     if(receivedMessage instanceof TextMessage) {
                         TextMessage receivedTextMessage = (TextMessage) receivedMessage;
                         returnMessage = receivedTextMessage.getText();
+                        /* //[BEGIN_METRICS]
+                        metricLogger.Increment(new MessageReceived());
+                        metricLogger.Add(new ReceivedMessageSize(returnMessage.length()));
+                        //[END_METRICS] */
                         /* //[BEGIN_LOGGING]
                         loggingUtilities.LogMessageReceived(this, returnMessage);
                         //[END_LOGGING] */

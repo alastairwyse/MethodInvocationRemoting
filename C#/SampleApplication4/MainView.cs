@@ -32,7 +32,7 @@ namespace SampleApplication4
     /// <summary>
     /// The main view of the Pi Approximator application.
     /// </summary>
-    partial class MainView : Form, IMainView
+    public partial class MainView : Form, IMainView
     {
         private IPresenter presenter;
 

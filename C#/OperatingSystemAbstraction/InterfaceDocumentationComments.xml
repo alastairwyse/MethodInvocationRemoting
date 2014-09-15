@@ -172,5 +172,184 @@
             </summary>
             <param name="value">The string to write. If value is null, only the line terminator is written. </param>
         </member>
+      <member name="T:OperatingSystemAbstraction.IDateTime">
+        <summary>
+          Provides an abstraction of the System.DateTime structure, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IDateTime.Now">
+        <summary>
+          Gets a DateTime object that is set to the current date and time on this computer, expressed as the local time.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IDateTime.UtcNow">
+        <summary>
+          Gets a DateTime object that is set to the current date and time on this computer, expressed as the Coordinated Universal Time (UTC).
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IOleDbConnection">
+        <summary>
+          Provides an abstraction of the System.Data.OleDb.OleDbConnection class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IOleDbConnection.ConnectionString">
+        <summary>
+          Gets or sets the string used to open a database.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IOleDbConnection.Open">
+        <summary>
+          Opens a database connection with the property settings specified by the ConnectionString.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IOleDbConnection.Close">
+        <summary>
+          Closes the connection to the data source.
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IOleDbCommand">
+        <summary>
+          Provides an abstraction of the System.Data.OleDb.OleDbCommand class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IOleDbConnection.CommandText">
+        <summary>
+          The SQL statement or stored procedure to execute. The default value is an empty string.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IOleDbConnection.State">
+        <summary>
+          Gets the current state of the connection.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IOleDbConnection.ExecuteNonQuery">
+        <summary>
+          Executes an SQL statement against the Connection and returns the number of rows affected.
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IConsole">
+        <summary>
+          Provides an abstraction of the System.Console class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IConsole.Write(System.String)">
+        <summary>
+          Writes the specified string value to the standard output stream.
+        </summary>
+        <param name="value">The value to write.</param>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IConsole.WriteLine">
+        <summary>
+          Writes the current line terminator to the standard output stream.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IConsole.WriteLine(System.String)">
+        <summary>
+          Writes the specified string value, followed by the current line terminator, to the standard output stream.
+        </summary>
+        <param name="value">The value to write.</param>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IConsole.Clear">
+        <summary>
+          Clears the console buffer and corresponding console window of display information.
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IPerformanceCounterCategory">
+        <summary>
+          Provides an abstraction of the System.Diagnostics.PerformanceCounterCategory class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IPerformanceCounterCategory.Exists(System.String)">
+        <summary>
+          Determines whether the category is registered on the local computer.
+        </summary>
+        <param name="categoryName">The name of the performance counter category to look for.</param>
+        <returns>true if the category is registered; otherwise, false.</returns>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IPerformanceCounterCategory.Delete(System.String)">
+        <summary>
+          Removes the category and its associated counters from the local computer.
+        </summary>
+        <param name="categoryName">The name of the custom performance counter category to delete.</param>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IPerformanceCounterCategory.Create(System.String,System.String,System.Diagnostics.PerformanceCounterCategoryType,ICounterCreationDataCollection)">
+        <summary>
+          Registers the custom performance counter category containing the specified counters on the local computer.
+        </summary>
+        <param name="categoryName">The name of the custom performance counter category to create and register with the system.</param>
+        <param name="categoryHelp">A description of the custom category.</param>
+        <param name="categoryType">One of the PerformanceCounterCategoryType values. </param>
+        <param name="counterData">An ICounterCreationDataCollection implementation that specifies the counters to create as part of the new category.</param>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IPerformanceCounter">
+        <summary>
+          Provides an abstraction of the System.Diagnostics.PerformanceCounter class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.IPerformanceCounter.RawValue">
+        <summary>
+          Sets the raw, or uncalculated, value of this counter.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IPerformanceCounter.Dispose">
+        <summary>
+          Releases all resources used by the Component.
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.IPerformanceCounterFactory">
+        <summary>
+          Provides an abstraction for creation of System.Diagnostics.PerformanceCounter objects, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.IPerformanceCounterFactory.Create(System.String,System.String,System.Boolean)">
+        <summary>
+          Creates a new instance of an implementation of the OperatingSystemAbstraction.IPerformanceCounter interface.
+        </summary>
+        <param name="categoryName">The name of the performance counter category (performance object) with which this performance counter is associated.</param>
+        <param name="counterName">The name of the performance counter.</param>
+        <param name="readOnly">true to access the counter in read-only mode (although the counter itself could be read/write); false to access the counter in read/write mode.</param>
+        <returns>The OperatingSystemAbstraction.IPerformanceCounter implementation.</returns>
+      </member>
+      <member name="T:OperatingSystemAbstraction.ICounterCreationData">
+        <summary>
+          Provides an abstraction of the System.Diagnostics.CounterCreationData class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="P:OperatingSystemAbstraction.ICounterCreationData.CreationData">
+        <summary>
+          The real counter creation data underlying the abstraction.
+        </summary>
+      </member>
+      <member name="T:OperatingSystemAbstraction.ICounterCreationDataFactory">
+        <summary>
+          Provides an abstraction for creation of System.Diagnostics.CounterCreationData objects, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.ICounterCreationDataFactory.Create(System.String,System.String,System.Diagnostics.PerformanceCounterType)">
+        <summary>
+          Creates a new instance of an implementation of the OperatingSystemAbstraction.ICounterCreationData interface.
+        </summary>
+        <param name="counterName">The name of the counter, which must be unique within its category.</param>
+        <param name="counterHelp">The text that describes the counter's behavior.</param>
+        <param name="counterType">A PerformanceCounterType that identifies the counter's behavior.</param>
+        <returns>The OperatingSystemAbstraction.ICounterCreationData implementation.</returns>
+      </member>
+      <member name="T:OperatingSystemAbstraction.ICounterCreationDataCollection">
+        <summary>
+          Provides an abstraction of the System.Diagnostics.CounterCreationDataCollection class, to facilitate mocking and unit testing.
+        </summary>
+      </member>
+      <member name="M:OperatingSystemAbstraction.ICounterCreationDataCollection.Add(OperatingSystemAbstraction.ICounterCreationData)">
+        <summary>
+          Adds an implementation of the ICounterCreationData interface to the collection.
+        </summary>
+        <param name="value">An ICounterCreationData object to append to the existing collection.</param>
+        <returns>The index of the new ICounterCreationData object.</returns>
+      </member>
+      <member name="P:OperatingSystemAbstraction.ICounterCreationDataCollection.Collection">
+        <summary>
+          The real counter creation data collection underlying the abstraction.
+        </summary>
+      </member>
     </members>
   </doc>

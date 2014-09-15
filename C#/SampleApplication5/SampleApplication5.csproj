@@ -1,0 +1,99 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{3FD463AC-4D91-4FBC-9528-0C9C8BC7C353}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>SampleApplication5</RootNamespace>
+    <AssemblyName>SampleApplication5</AssemblyName>
+    <StartupObject>SampleApplication5.Program</StartupObject>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Deployment" />
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Windows.Forms" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\SolutionInfo.cs">
+      <Link>SolutionInfo.cs</Link>
+    </Compile>
+    <Compile Include="MetricLoggerDistributor.cs" />
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <EmbeddedResource Include="Properties\Resources.resx">
+      <Generator>ResXFileCodeGenerator</Generator>
+      <LastGenOutput>Resources.Designer.cs</LastGenOutput>
+      <SubType>Designer</SubType>
+    </EmbeddedResource>
+    <Compile Include="Properties\Resources.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Resources.resx</DependentUpon>
+    </Compile>
+    <None Include="Properties\Settings.settings">
+      <Generator>SettingsSingleFileGenerator</Generator>
+      <LastGenOutput>Settings.Designer.cs</LastGenOutput>
+    </None>
+    <Compile Include="Properties\Settings.Designer.cs">
+      <AutoGen>True</AutoGen>
+      <DependentUpon>Settings.settings</DependentUpon>
+      <DesignTimeSharedInput>True</DesignTimeSharedInput>
+    </Compile>
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApplicationLogging\ApplicationLogging.csproj">
+      <Project>{A0893E6A-1B59-4B3A-AE68-1CA688063526}</Project>
+      <Name>ApplicationLogging</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ApplicationMetrics\ApplicationMetrics.csproj">
+      <Project>{CBEB0A28-6632-479A-A6DF-C20A41C050A4}</Project>
+      <Name>ApplicationMetrics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MethodInvocationRemotingMetrics\MethodInvocationRemotingMetrics.csproj">
+      <Project>{D70F5AD0-FE24-41F8-B687-51A5225C66A1}</Project>
+      <Name>MethodInvocationRemotingMetrics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MethodInvocationRemoting\MethodInvocationRemoting.csproj">
+      <Project>{4FA45586-C6E9-4A67-92F4-6B12A5FBCAE5}</Project>
+      <Name>MethodInvocationRemoting</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OperatingSystemAbstraction\OperatingSystemAbstraction.csproj">
+      <Project>{0AD197AE-27BD-4532-AFF9-DDC40EA02295}</Project>
+      <Name>OperatingSystemAbstraction</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\SampleApplication4\SampleApplication4.csproj">
+      <Project>{B717E84C-E0B6-4EE3-B451-4A560EFAD1DD}</Project>
+      <Name>SampleApplication4</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

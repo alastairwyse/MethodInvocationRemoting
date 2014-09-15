@@ -21,6 +21,8 @@ import java.io.*;
 import java.nio.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Represents the state of parsing a message received by the TcpRemoteReceiver class.
@@ -61,6 +63,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
     private int lastMessageSequenceNumber;
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     /** The string encoding to expect when receiving a message. */
     protected String stringEncodingCharset = "UTF-8";
     /** The byte which denotes the start of the message. */
@@ -112,6 +115,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
         serverSocketChannel = new ServerSocketChannel();
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
         
         lastMessageSequenceNumber = 0;
         connected = false;
@@ -134,6 +138,37 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
     }
     
     /**
+     * Initialises a new instance of the TcpRemoteReceiver class.
+     * @param port                  The port to listen for incoming connections on.
+     * @param connectRetryCount     The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.
+     * @param connectRetryInterval  The interval between retries to connect or reconnect in milliseconds.
+     * @param receiveRetryInterval  The time to wait between attempts to receive a message in milliseconds.
+     * @param socketReadBufferSize  The number of bytes to read from the socket in each read operation.
+     * @param metricLogger          The metric logger to write metric and instrumentation events to.
+     */
+    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IMetricLogger metricLogger) {
+        this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteReceiver class.
+     * @param port                  The port to listen for incoming connections on.
+     * @param connectRetryCount     The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.
+     * @param connectRetryInterval  The interval between retries to connect or reconnect in milliseconds.
+     * @param receiveRetryInterval  The time to wait between attempts to receive a message in milliseconds.
+     * @param socketReadBufferSize  The number of bytes to read from the socket in each read operation.
+     * @param logger                The logger to write log events to.
+     * @param metricLogger          The metric logger to write metric and instrumentation events to.
+     */
+    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
      * Initialises a new instance of the TcpRemoteReceiver class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
      * @param port                  The port to listen for incoming connections on.
@@ -142,11 +177,13 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
      * @param receiveRetryInterval  The time to wait between attempts to receive a message in milliseconds.
      * @param socketReadBufferSize  The number of bytes to read from the socket in each read operation.
      * @param logger                The logger to write log events to.
+     * @param metricLogger          The metric logger to write metric and instrumentation events to.
      * @param serverSocketChannel   A test (mock) server socket channel.
      */
-    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IApplicationLogger logger, IServerSocketChannel serverSocketChannel) {
+    public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, int socketReadBufferSize, IApplicationLogger logger, IMetricLogger metricLogger, IServerSocketChannel serverSocketChannel) {
         this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, socketReadBufferSize, logger);
         this.serverSocketChannel = serverSocketChannel;
+        this.metricLogger = metricLogger;
     }
     
     /**
@@ -199,6 +236,9 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
             if (PendingConnectionExists() == true) {
                 logger.Log(this, LogLevel.Warning, "New connection detected.  Attempting reconnect.");
                 AttemptConnect();
+                /* //[BEGIN_METRICS]
+                metricLogger.Increment(new TcpRemoteReceiverReconnected());
+                //[END_METRICS] */
             }
             
             // Check if any data has been received from the socket channel, and handle and retry if an exception occurs
@@ -213,6 +253,10 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
         
             // If data has been received, attempt parse it and read and parse any remaining data, and handle and retry if an exception occurs
             if (receivedDataCount > 0){
+                /* //[BEGIN_METRICS]
+                metricLogger.Begin(new MessageReceiveTime());
+                //[END_METRICS] */
+                
                 MessageParseState parseState = MessageParseState.StartOfMessage;
                 ByteBuffer messageBytes = null;  // Holds the bytes which form the body of the message received
                 SetupAndReadMessageParameters methodParameters = new SetupAndReadMessageParameters(parseState, messageSequenceNumber);
@@ -236,20 +280,32 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
                     if (messageSequenceNumber != lastMessageSequenceNumber) {
                         lastMessageSequenceNumber = messageSequenceNumber;
                         returnMessage = new String(messageBytes.array(), stringEncodingCharset);
+                        
+                        /* //[BEGIN_METRICS]
+                        metricLogger.End(new MessageReceiveTime());
+                        metricLogger.Increment(new MessageReceived());
+                        metricLogger.Add(new ReceivedMessageSize(returnMessage.length()));
+                        //[END_METRICS] */
                         /* //[BEGIN_LOGGING]
                         loggingUtilities.LogMessageReceived(this, returnMessage);
                         //[END_LOGGING] */
                         break;
                     }
                     else {
+                        /* //[BEGIN_METRICS]
+                        metricLogger.Increment(new TcpRemoteReceiverDuplicateSequenceNumber());
+                        //[END_METRICS] */
                         logger.Log(this, LogLevel.Warning, "Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
                         // Reset variables
                         messageSequenceNumber = -1;
                         returnMessage = "";
                     }
                 }
+                /* //[BEGIN_METRICS]
+                metricLogger.End(new MessageReceiveTime());
+                //[END_METRICS] */
             }
-            
+
             waitingForRetry = true;
             if (receiveRetryInterval > 0){
                 Thread.sleep(receiveRetryInterval);
@@ -378,6 +434,9 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
         
         int receivedDataCount = 0;
         AttemptConnect();
+        /* //[BEGIN_METRICS]
+        metricLogger.Increment(new TcpRemoteReceiverReconnected());
+        //[END_METRICS] */
         try {
             receivedDataCount = socketChannel.read(receivedDataBuffer);
         }
@@ -412,6 +471,9 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
             if (initialReceivedBytes.hasRemaining() == false) {
                 tempBuffer = ByteBuffer.allocate(socketReadBufferSize);
                 parseStartIndex = 0;
+                /* //[BEGIN_METRICS]
+                metricLogger.Increment(new TcpRemoteReceiverReadBufferCreated());
+                //[END_METRICS] */
             }
             // Otherwise set the initially read ByteBuffer to member tempBuffer, and update the parse start index to the correct position
             else {
@@ -435,6 +497,9 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
             if (tempBuffer.hasRemaining() == false) {
                 tempBuffer = ByteBuffer.allocate(socketReadBufferSize);
                 parseStartIndex = 0;
+                /* //[BEGIN_METRICS]
+                metricLogger.Increment(new TcpRemoteReceiverReadBufferCreated());
+                //[END_METRICS] */
             }
             // Otherwise update the parse start index to the correct position
             else {
@@ -576,6 +641,9 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
 
         ByteBuffer messageBytes = null; 
         AttemptConnect();
+        /* //[BEGIN_METRICS]
+        metricLogger.Increment(new TcpRemoteReceiverReconnected());
+        //[END_METRICS] */
         methodParameters.parseState = MessageParseState.StartOfMessage;
         try {
             messageBytes = SetupAndReadMessage(null, methodParameters);

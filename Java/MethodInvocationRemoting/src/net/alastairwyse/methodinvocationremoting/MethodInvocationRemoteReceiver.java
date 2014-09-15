@@ -17,6 +17,8 @@
 package net.alastairwyse.methodinvocationremoting;
 
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Receives method invocations (represented by IMethodInvocation objects) from remote locations.
@@ -31,6 +33,7 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
     private Thread receiveLoopThread;
     private volatile boolean cancelRequest = false;
     private IApplicationLogger logger;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the MethodInvocationRemoteReceiver class.
@@ -43,6 +46,7 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         this.sender = sender;
         this.receiver = receiver;
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -55,6 +59,32 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
     public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger) {
         this(serializer, sender, receiver);
         this.logger = logger;
+    }
+    
+    /**
+     * Initialises a new instance of the MethodInvocationRemoteReceiver class.
+     * @param serializer    Object to use to deserialize method invocations.
+     * @param sender        Object to use to send serialized method invocation return values.
+     * @param receiver      Object to use to receive serialized method invocations.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IMetricLogger metricLogger) {
+        this(serializer, sender, receiver);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * 
+     * @param serializer    Object to use to deserialize method invocations.
+     * @param sender        Object to use to send serialized method invocation return values.
+     * @param receiver      Object to use to receive serialized method invocations.
+     * @param logger        The logger to write log events to.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationRemoteReceiver(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(serializer, sender, receiver);
+        this.logger = logger;
+        this.metricLogger = metricLogger;
     }
     
     @Override
@@ -81,6 +111,10 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         {
             String serializedReturnValue = serializer.SerializeReturnValue(returnValue);
             sender.Send(serializedReturnValue);
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new RemoteMethodReceiveTime());
+            metricLogger.Increment(new RemoteMethodReceived());
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             logger.Log(this, LogLevel.Information, "Sent return value.");
             //[END_LOGGING] */
@@ -96,6 +130,10 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
         try
         {
             sender.Send(serializer.getVoidReturnValue());
+            /* //[BEGIN_METRICS]
+            metricLogger.End(new RemoteMethodReceiveTime());
+            metricLogger.Increment(new RemoteMethodReceived());
+            //[END_METRICS] */
             /* //[BEGIN_LOGGING]
             logger.Log(this, LogLevel.Information, "Sent void return value.");
             //[END_LOGGING] */
@@ -139,6 +177,9 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
                     String serializedMethodInvocation = receiver.Receive();
                     if (serializedMethodInvocation != "")
                     {
+                        /* //[BEGIN_METRICS]
+                        metricLogger.Begin(new RemoteMethodReceiveTime());
+                        //[END_METRICS] */
                         IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
                         receivedEventHandler.MethodInvocationReceived(outerClass, receivedMethodInvocation);
                         /* //[BEGIN_LOGGING]

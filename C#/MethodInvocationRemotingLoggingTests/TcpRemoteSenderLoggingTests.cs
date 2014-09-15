@@ -22,6 +22,7 @@ using NMock2;
 using MethodInvocationRemoting;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
 
 namespace MethodInvocationRemotingLoggingTests
 {
@@ -52,7 +53,7 @@ namespace MethodInvocationRemotingLoggingTests
             mockNetworkStream = mocks.NewMock<INetworkStream>();
             mockApplicationLogger = mocks.NewMock<IApplicationLogger>();
             testIpAddress = System.Net.IPAddress.Parse("127.0.0.1");
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 3, 10, 25, 10, mockApplicationLogger, mockTcpClient);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 3, 10, 25, 10, mockApplicationLogger, new NullMetricLogger(), mockTcpClient);
         }
 
         [Test]

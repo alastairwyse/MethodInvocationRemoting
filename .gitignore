@@ -1,6 +1,9 @@
 # Documentation folder
 Documentation/
 
+# TestScripts folder
+TestScripts/
+
 # C# Exclusions
 *.suo
 C\#/ApplicationLogging/bin/
@@ -9,12 +12,20 @@ C\#/ApplicationLogging.Adapters/bin/
 C\#/ApplicationLogging.Adapters/obj/
 C\#/ApplicationLoggingUnitTests/bin/
 C\#/ApplicationLoggingUnitTests/obj/
+C\#/ApplicationMetrics/bin/
+C\#/ApplicationMetrics/obj/
+C\#/ApplicationMetricsUnitTests/bin/
+C\#/ApplicationMetricsUnitTests/obj/
 C\#/MethodInvocationRemoting/bin/
 C\#/MethodInvocationRemoting/obj/
 C\#/MethodInvocationRemotingUnitTests/bin/
 C\#/MethodInvocationRemotingUnitTests/obj/
 C\#/MethodInvocationRemotingLoggingTests/bin/
 C\#/MethodInvocationRemotingLoggingTests/obj/
+C\#/MethodInvocationRemotingMetrics/bin/
+C\#/MethodInvocationRemotingMetrics/obj/
+C\#/MethodInvocationRemotingMetricsTests/bin/
+C\#/MethodInvocationRemotingMetricsTests/obj/
 C\#/OperatingSystemAbstraction/bin/
 C\#/OperatingSystemAbstraction/obj/
 C\#/SampleApplication1/bin/
@@ -25,6 +36,8 @@ C\#/SampleApplication3/bin/
 C\#/SampleApplication3/obj/
 C\#/SampleApplication4/bin/
 C\#/SampleApplication4/obj/
+C\#/SampleApplication5/bin/
+C\#/SampleApplication5/obj/
 C\#/Referenced Libraries/log4net.dll
 C\#/Referenced Libraries/log4net.xml
 
@@ -35,17 +48,22 @@ Java/ApplicationLogging.Adapters/bin/
 Java/ApplicationLogging.Adapters/doc/
 Java/ApplicationLoggingUnitTests/bin/
 Java/ApplicationLoggingUnitTests/doc/
+Java/ApplicationMetrics/bin/
+Java/ApplicationMetrics/doc/
+Java/ApplicationMetricsUnitTests/bin/
+Java/ApplicationMetricsUnitTests/doc/
 Java/MethodInvocationRemoting/bin/
 Java/MethodInvocationRemoting/doc/
 Java/MethodInvocationRemoting/AntBuild/
-Java/MethodInvocationRemotingUnitTests/bin/
-Java/MethodInvocationRemotingUnitTests/doc/
 Java/MethodInvocationRemotingLoggingTests/bin/
 Java/MethodInvocationRemotingLoggingTests/doc/
+Java/MethodInvocationRemotingUnitTests/bin/
+Java/MethodInvocationRemotingUnitTests/doc/
 Java/OperatingSystemAbstraction/bin/
 Java/OperatingSystemAbstraction/doc/
 Java/SampleApplication1/bin/
 Java/SampleApplication2/bin/
 Java/SampleApplication3/bin/
 Java/SampleApplication4/bin/
+Java/SampleApplication5/bin/
 Java/Referenced Libraries/log4j-1.2.17.jar

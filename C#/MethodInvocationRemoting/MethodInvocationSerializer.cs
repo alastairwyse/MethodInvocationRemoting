@@ -23,6 +23,8 @@ using System.Xml;
 using System.Xml.Serialization;
 using System.Globalization;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -72,6 +74,7 @@ namespace MethodInvocationRemoting
         private ISerializerOperationMap operationMap;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="P:MethodInvocationRemoting.IMethodInvocationSerializer.VoidReturnValue"]/*'/>
         public string VoidReturnValue
@@ -116,6 +119,7 @@ namespace MethodInvocationRemoting
             this.operationMap = operationMap;
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
 
             operationMap.AddMapping(typeof(Int32), "integer", new XmlSerializationOperation(SerializeInt32), new XmlDeserializationOperation(DeserializeInt32));
             operationMap.AddMapping(typeof(String), "string", new XmlSerializationOperation(SerializeString), new XmlDeserializationOperation(DeserializeString));
@@ -158,9 +162,46 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationSerializer (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationSerializer class.
+        /// </summary>
+        /// <param name="operationMap">The serializer operation map to use to store mappings between object types and methods to serialize and deserialize the types.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public MethodInvocationSerializer(ISerializerOperationMap operationMap, IMetricLogger metricLogger)
+            : this(operationMap)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: MethodInvocationSerializer (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.MethodInvocationSerializer class.
+        /// </summary>
+        /// <param name="operationMap">The serializer operation map to use to store mappings between object types and methods to serialize and deserialize the types.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public MethodInvocationSerializer(ISerializerOperationMap operationMap, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(operationMap)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Serialize(MethodInvocationRemoting.IMethodInvocation)"]/*'/>
         public string Serialize(IMethodInvocation inputMethodInvocation)
         {
+            metricsUtilities.Begin(new MethodInvocationSerializeTime());
+
             string returnString = "";
 
             using (MemoryStream outputStream = new MemoryStream())
@@ -193,6 +234,9 @@ namespace MethodInvocationRemoting
                 writer.Close();
             }
 
+            metricsUtilities.End(new MethodInvocationSerializeTime());
+            metricsUtilities.Increment(new MethodInvocationSerialized());
+            metricsUtilities.Add(new SerializedMethodInvocationSize(returnString.Length));
             loggingUtilities.LogSerializedItem(this, returnString, "method invocation");
 
             return returnString;
@@ -201,6 +245,8 @@ namespace MethodInvocationRemoting
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.Deserialize(System.String)"]/*'/>
         public MethodInvocation Deserialize(string serializedMethodInvocation)
         {
+            metricsUtilities.Begin(new MethodInvocationDeserializeTime());
+
             string methodName;
             ArrayList parameterArray;
             Type returnType = null;
@@ -233,6 +279,8 @@ namespace MethodInvocationRemoting
                 reader.Close();
             }
 
+            metricsUtilities.End(new MethodInvocationDeserializeTime());
+            metricsUtilities.Increment(new MethodInvocationDeserialized());
             loggingUtilities.Log(this, LogLevel.Information, "Deserialized string to method invocation '" + methodName + "'.");
 
             return BuildMethodInvocation(methodName, parameterArray, returnType);
@@ -241,6 +289,8 @@ namespace MethodInvocationRemoting
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.SerializeReturnValue(System.Object)"]/*'/>
         public string SerializeReturnValue(object inputReturnValue)
         {
+            metricsUtilities.Begin(new ReturnValueSerializeTime());
+
             string returnString = "";
 
             using (MemoryStream outputStream = new MemoryStream())
@@ -260,6 +310,9 @@ namespace MethodInvocationRemoting
                 writer.Close();
             }
 
+            metricsUtilities.End(new ReturnValueSerializeTime());
+            metricsUtilities.Increment(new ReturnValueSerialized());
+            metricsUtilities.Add(new SerializedReturnValueSize(returnString.Length));
             loggingUtilities.LogSerializedItem(this, returnString, "return value");
 
             return returnString;
@@ -268,6 +321,8 @@ namespace MethodInvocationRemoting
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IMethodInvocationSerializer.DeserializeReturnValue(System.String)"]/*'/>
         public object DeserializeReturnValue(string serializedReturnValue)
         {
+            metricsUtilities.Begin(new ReturnValueDeserializeTime());
+
             object returnValue = null;
 
             using (MemoryStream sourceStream = serializerUtilities.ConvertStringToMemoryStream(serializedReturnValue))
@@ -288,6 +343,8 @@ namespace MethodInvocationRemoting
 
             }
 
+            metricsUtilities.End(new ReturnValueDeserializeTime());
+            metricsUtilities.Increment(new ReturnValueDeserialized());
             loggingUtilities.LogDeserializedReturnValue(this, returnValue);
 
             return returnValue;

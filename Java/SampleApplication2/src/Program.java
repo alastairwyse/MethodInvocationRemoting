@@ -43,7 +43,7 @@ public class Program {
             presenter = new ContactListPresenterRemoteAdapterActiveMQ("tcp://localhost:61616?wireFormat.maxInactivityDuration=0", "FromJava", "FromC#", "Request", "Response");
             // presenter = new ContactListPresenterRemoteAdapterFile("C:\\Temp\\FromJavaRequest.txt", "C:\\Temp\\FromJavaRequest.lck", "C:\\Temp\\FromJavaResponse.txt", "C:\\Temp\\FromJavaResponse.lck", "C:\\Temp\\FromC#Response.txt", "C:\\Temp\\FromC#Response.lck", "C:\\Temp\\FromC#Request.txt", "C:\\Temp\\FromC#Request.lck");
             // presenter = new ContactListPresenterRemoteAdapterTcp(InetAddress.getLoopbackAddress(), 55003, 55002, 55001, 55000, 15, 2000, 30000, 50, 25);
-            
+
         	mainView = new MainView();
             presenter.setMainView(mainView);
             mainView.SetPresenter(presenter);

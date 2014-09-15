@@ -35,15 +35,15 @@ public interface IFile {
     
     /**
      * Reads the entire contents of the file as a string.
-     * @return     The contents of the file.
-     * @exception  if an error occurs when attempting to read the file.
+     * @return             The contents of the file.
+     * @throws  Exception  if an error occurs when attempting to read the file.
      */
     String ReadAll() throws Exception;
     
     /**
      * Overwrites the entire contents of the file with the specified string.
-     * @param data  The data to write to the file.
-     * @exception   if an error occurs when attempting to write to the file.
+     * @param   data       The data to write to the file.
+     * @throws  Exception  if an error occurs when attempting to write to the file.
      */
     void WriteAll(String data) throws Exception;
 }

@@ -33,11 +33,11 @@ namespace MethodInvocationRemoting
     {
         private Encoding characterEncoding;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: SerializerUtilities (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.SerializerUtilities class.
         /// </summary>
@@ -47,11 +47,11 @@ namespace MethodInvocationRemoting
             this.characterEncoding = characterEncoding;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: ConvertStringToMemoryStream
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Converts a string to a System.IO.MemoryStream object.
         /// </summary>
@@ -69,11 +69,11 @@ namespace MethodInvocationRemoting
             return targetStream;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: ConvertMemoryStreamToString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Converts the contents of a System.IO.MemoryStream object to a string.
         /// </summary>

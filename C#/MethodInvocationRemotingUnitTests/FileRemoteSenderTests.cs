@@ -19,9 +19,10 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using NMock2;
-using MethodInvocationRemoting;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemoting;
 
 namespace MethodInvocationRemotingUnitTests
 {
@@ -53,7 +54,7 @@ namespace MethodInvocationRemotingUnitTests
             mockMessageFile = mocks.NewMock<IFile>();
             mockLockFile = mocks.NewMock<IFile>();
             mockFileSystem = mocks.NewMock<IFileSystem>();
-            testFileRemoteSender = new FileRemoteSender(messageFilePath, lockFilePath, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockMessageFile, mockLockFile, mockFileSystem);
+            testFileRemoteSender = new FileRemoteSender(messageFilePath, lockFilePath, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockMessageFile, mockLockFile, mockFileSystem);
         }
 
         [Test]

@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Text;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -41,16 +43,17 @@ namespace MethodInvocationRemoting
         private volatile bool cancelRequest;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
         /// <summary>
         /// Indicates whether the object has been disposed.
         /// </summary>
         protected bool disposed;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.
         /// </summary>
@@ -73,15 +76,16 @@ namespace MethodInvocationRemoting
 
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
 
             disposed = false;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.
         /// </summary>
@@ -96,11 +100,50 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to receive messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="readLoopTimeout">The time to wait between attempts to read the file in milliseconds.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IMetricLogger metricLogger)
+            : this(messageFilePath, lockFilePath, readLoopTimeout)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to receive messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="readLoopTimeout">The time to wait between attempts to read the file in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(messageFilePath, lockFilePath, readLoopTimeout)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteReceiver class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
@@ -108,15 +151,17 @@ namespace MethodInvocationRemoting
         /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
         /// <param name="readLoopTimeout">The time to wait between attempts to read the file in milliseconds.</param>
         /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
         /// <param name="messageFile">A test (mock) message file.</param>
         /// <param name="fileSystem">A test (mock) file system.</param>
-        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IApplicationLogger logger, IFile messageFile, IFileSystem fileSystem)
+        public FileRemoteReceiver(string messageFilePath, string lockFilePath, int readLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger, IFile messageFile, IFileSystem fileSystem)
             : this(messageFilePath, lockFilePath, readLoopTimeout)
         {
             this.messageFile = messageFile;
             this.fileSystem = fileSystem;
             this.logger = logger;
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteReceiver.Receive"]/*'/>
@@ -134,8 +179,14 @@ namespace MethodInvocationRemoting
                     {
                         if (fileSystem.CheckFileExists(lockFilePath) == false)
                         {
+                            metricsUtilities.Begin(new MessageReceiveTime());
+
                             returnMessage = messageFile.ReadAll();
                             fileSystem.DeleteFile(messageFilePath);
+
+                            metricsUtilities.End(new MessageReceiveTime());
+                            metricsUtilities.Increment(new MessageReceived());
+                            metricsUtilities.Add(new ReceivedMessageSize(returnMessage.Length));
                             loggingUtilities.LogMessageReceived(this, returnMessage);
                             break;
                         }
@@ -184,11 +235,11 @@ namespace MethodInvocationRemoting
             Dispose(false);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Dispose
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Provides a method to free unmanaged resources used by this class.
         /// </summary>
@@ -200,21 +251,23 @@ namespace MethodInvocationRemoting
                 if (disposing)
                 {
                     // Free other state (managed objects).
+                    messageFile.Dispose();
+                    messageFilePath = null;
+                    lockFilePath = null;
                 }
                 // Free your own state (unmanaged objects).
-                messageFile.Dispose();
+                
                 // Set large fields to null.
-                messageFilePath = null;
-                lockFilePath = null;
+
                 disposed = true;
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckNotDisposed
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if the disposed property is true.
         /// </summary>

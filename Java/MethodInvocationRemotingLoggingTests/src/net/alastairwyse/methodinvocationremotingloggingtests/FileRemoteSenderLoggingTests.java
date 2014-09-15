@@ -19,9 +19,10 @@ package net.alastairwyse.methodinvocationremotingloggingtests;
 import org.junit.Before;
 import org.junit.Test;
 import static org.mockito.Mockito.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for the logging functionality in class methodinvocationremoting.FileRemoteSender.
@@ -41,7 +42,7 @@ public class FileRemoteSenderLoggingTests {
         mockLockFile = mock(IFile.class);
         mockFileSystem = mock(IFileSystem.class);
         mockApplicationLogger = mock(IApplicationLogger.class);
-        testFileRemoteSender = new FileRemoteSender("C:\\Temp\\TestFilePath.txt", "C:\\Temp\\TestFilePath.lck", mockApplicationLogger, mockMessageFile, mockLockFile, mockFileSystem);
+        testFileRemoteSender = new FileRemoteSender("C:\\Temp\\TestFilePath.txt", "C:\\Temp\\TestFilePath.lck", mockApplicationLogger, new NullMetricLogger(), mockMessageFile, mockLockFile, mockFileSystem);
     }
     
     @Test

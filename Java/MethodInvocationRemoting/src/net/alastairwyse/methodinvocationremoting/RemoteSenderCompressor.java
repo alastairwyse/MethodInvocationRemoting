@@ -20,13 +20,20 @@ import java.io.*;
 import java.util.zip.*;
 import org.apache.commons.codec.binary.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
+/**
+ * Compresses a message, before passing to an underlying IRemoteSender implementation to send to a remote location.
+ * @author Alastair Wyse
+ */
 public class RemoteSenderCompressor implements IRemoteSender {
 
     private IRemoteSender remoteSender;
     private String stringEncodingCharset = "UTF-8";
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the RemoteSenderCompressor class.
@@ -36,6 +43,7 @@ public class RemoteSenderCompressor implements IRemoteSender {
         remoteSender = underlyingRemoteSender;
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -47,6 +55,29 @@ public class RemoteSenderCompressor implements IRemoteSender {
         this(underlyingRemoteSender);
         this.logger = logger;
         loggingUtilities = new LoggingUtilities(logger);
+    }
+    
+    /**
+     * Initialises a new instance of the RemoteSenderCompressor class.
+     * @param underlyingRemoteSender  The remote sender to send the message to after compressing.
+     * @param metricLogger            The metric logger to write metric and instrumentation events to.
+     */
+    public RemoteSenderCompressor(IRemoteSender underlyingRemoteSender, IMetricLogger metricLogger) {
+        this(underlyingRemoteSender);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the RemoteSenderCompressor class.
+     * @param underlyingRemoteSender  The remote sender to send the message to after compressing.
+     * @param logger                  The logger to write log events to.
+     * @param metricLogger            The metric logger to write metric and instrumentation events to.
+     */
+    public RemoteSenderCompressor(IRemoteSender underlyingRemoteSender, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(underlyingRemoteSender);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
     }
     
     @Override
@@ -61,6 +92,10 @@ public class RemoteSenderCompressor implements IRemoteSender {
      * @throws Exception   If an error occurs whilst compressing the string.
      */
     private String CompressString(String inputString) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new StringCompressTime());
+        //[END_METRICS] */
+        
         byte[] compressedByteArray;
         
         try (ByteArrayOutputStream compressedStringStream = new ByteArrayOutputStream();
@@ -77,6 +112,11 @@ public class RemoteSenderCompressor implements IRemoteSender {
         
         String returnString = Base64.encodeBase64String(compressedByteArray);
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new StringCompressTime());
+        metricLogger.Increment(new StringCompressed());
+        metricLogger.Add(new CompressedStringSize(returnString.length()));
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         loggingUtilities.LogCompressedString(this, returnString);
         //[END_LOGGING] */

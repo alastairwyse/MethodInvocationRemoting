@@ -20,7 +20,7 @@ using System.Text;
 using System.Windows.Forms;
 using MethodInvocationRemoting;
 using ApplicationLogging;
-using OperatingSystemAbstraction;
+using ApplicationMetrics;
 
 namespace SampleApplication4
 {
@@ -32,6 +32,9 @@ namespace SampleApplication4
         [STAThread]
         static void Main(string[] args)
         {
+            Application.EnableVisualStyles();
+            Application.SetCompatibleTextRenderingDefault(false);
+
             // Setup logger and MethodInvocationRemoting objects
             using (FileApplicationLogger remoteSenderLog = new FileApplicationLogger(LogLevel.Debug, '|', "  ", @"C:\Temp\C#Sender.log"))
             using (TcpRemoteSender tcpSender = new TcpRemoteSender(System.Net.IPAddress.Loopback, 55000, 10, 1000, 30000, 25, remoteSenderLog))

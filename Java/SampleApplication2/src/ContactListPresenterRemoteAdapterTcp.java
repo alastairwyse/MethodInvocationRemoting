@@ -56,7 +56,7 @@ public class ContactListPresenterRemoteAdapterTcp implements IContactListPresent
         synchronized(exceptionLock) {
             occurredException = null;
         }
-        
+
         // Setup objects for sending method invocations
         outgoingMethodSerializer = new MethodInvocationSerializer(new SerializerOperationMap());
         outgoingSender = new TcpRemoteSender(remoteIpAddress, outgoingSenderPort, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);

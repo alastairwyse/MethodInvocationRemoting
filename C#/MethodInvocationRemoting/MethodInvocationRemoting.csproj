@@ -15,7 +15,7 @@
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
     <OutputPath>bin\Debug\</OutputPath>
-    <DefineConstants>TRACE;DEBUG;LOGGING_ON</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;LOGGING_ON;METRICS_ON</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
     <DocumentationFile>bin\Debug\MethodInvocationRemoting.xml</DocumentationFile>
@@ -67,6 +67,7 @@
     <Compile Include="MethodInvocationRemoteReceiver.cs" />
     <Compile Include="MethodInvocationRemoteSender.cs" />
     <Compile Include="MethodInvocationSerializer.cs" />
+    <Compile Include="MetricsUtilities.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="RemoteReceiverDecompressor.cs" />
     <Compile Include="RemoteSenderCompressor.cs" />
@@ -84,6 +85,14 @@
     <ProjectReference Include="..\ApplicationLogging\ApplicationLogging.csproj">
       <Project>{A0893E6A-1B59-4B3A-AE68-1CA688063526}</Project>
       <Name>ApplicationLogging</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\ApplicationMetrics\ApplicationMetrics.csproj">
+      <Project>{CBEB0A28-6632-479A-A6DF-C20A41C050A4}</Project>
+      <Name>ApplicationMetrics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\MethodInvocationRemotingMetrics\MethodInvocationRemotingMetrics.csproj">
+      <Project>{D70F5AD0-FE24-41F8-B687-51A5225C66A1}</Project>
+      <Name>MethodInvocationRemotingMetrics</Name>
     </ProjectReference>
     <ProjectReference Include="..\OperatingSystemAbstraction\OperatingSystemAbstraction.csproj">
       <Project>{0AD197AE-27BD-4532-AFF9-DDC40EA02295}</Project>

@@ -22,6 +22,7 @@ using NMock2;
 using MethodInvocationRemoting;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
 
 namespace MethodInvocationRemotingLoggingTests
 {
@@ -51,7 +52,7 @@ namespace MethodInvocationRemotingLoggingTests
             mockLockFile = mocks.NewMock<IFile>();
             mockFileSystem = mocks.NewMock<IFileSystem>();
             mockApplicationLogger = mocks.NewMock<IApplicationLogger>();
-            testFileRemoteSender = new FileRemoteSender(@"C:\Temp\TestFilePath.txt", @"C:\Temp\TestFilePath.lck", mockApplicationLogger, mockMessageFile, mockLockFile, mockFileSystem);
+            testFileRemoteSender = new FileRemoteSender(@"C:\Temp\TestFilePath.txt", @"C:\Temp\TestFilePath.lck", mockApplicationLogger, new NullMetricLogger(), mockMessageFile, mockLockFile, mockFileSystem);
         }
 
         [Test]

@@ -20,8 +20,9 @@ import org.junit.Before;
 import org.junit.Test;
 import javax.jms.*;
 import static org.mockito.Mockito.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for the logging functionality in class methodinvocationremoting.ActiveMqRemoteSender.
@@ -48,7 +49,7 @@ public class ActiveMqRemoteSenderLoggingTests {
         mockDestination = mock(Destination.class);
         mockProducer = mock(MessageProducer.class);
         mockApplicationLogger = mock(IApplicationLogger.class);
-        testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, mockApplicationLogger, mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
+        testActiveMqRemoteSender = new ActiveMqRemoteSender(connectUriName, queueName, messageFilter, mockApplicationLogger, new NullMetricLogger(), mockConnectionFactory, mockConnection, mockSession, mockDestination, mockProducer);
     }
     
     @Test

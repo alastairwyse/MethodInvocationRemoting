@@ -20,9 +20,10 @@ using System.Text;
 using NUnit.Framework;
 using NMock2;
 using NMock2.Actions;
-using MethodInvocationRemoting;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemoting;
 
 namespace MethodInvocationRemotingLoggingTests
 {
@@ -53,7 +54,7 @@ namespace MethodInvocationRemotingLoggingTests
             mockTcpClient = mocks.NewMock<ITcpClient>();
             mockNetworkStream = mocks.NewMock<INetworkStream>();
             mockApplicationLogger = mocks.NewMock<IApplicationLogger>();
-            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, mockApplicationLogger, mockTcpListener);
+            testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, mockApplicationLogger, new NullMetricLogger(), mockTcpListener);
         }
 
         [Test]

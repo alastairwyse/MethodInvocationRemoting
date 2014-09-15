@@ -23,9 +23,10 @@ import java.nio.ByteOrder;
 import static org.mockito.Mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for the logging functionality in class methodinvocationremoting.TcpRemoteReceiver.
@@ -46,7 +47,7 @@ public class TcpRemoteReceiverLoggingTests {
         mockServerSocketChannel = mock(IServerSocketChannel.class);
         mockSocketChannel = mock(ISocketChannel.class);
         mockApplicationLogger = mock(IApplicationLogger.class);
-        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, socketReadBufferSize, mockApplicationLogger, mockServerSocketChannel);
+        testTcpRemoteReceiver = new TcpRemoteReceiver(testPort, 3, 10, 20, socketReadBufferSize, mockApplicationLogger, new NullMetricLogger(), mockServerSocketChannel);
     }
     
     @Test

@@ -28,7 +28,7 @@ namespace SampleApplication4
     /// <summary>
     /// Contains the results of validating a data item.
     /// </summary>
-    class ValidationResult
+    public class ValidationResult
     {
         private bool isValid;
         private string validationError;

@@ -39,11 +39,11 @@ namespace ApplicationLogging
         /// <summary>A format string to use to format dates and times in the resulting logging information.</summary>
         protected string dateTimeFormat;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: ApplicationLoggerBase (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the ApplicationLogging.ApplicationLoggerBase class.
         /// </summary>
@@ -61,11 +61,11 @@ namespace ApplicationLogging
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: ApplicationLoggerBase (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the ApplicationLogging.ApplicationLoggerBase class.
         /// </summary>

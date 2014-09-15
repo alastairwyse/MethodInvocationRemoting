@@ -8,5 +8,6 @@
 	<classpathentry kind="lib" path="../Referenced Libraries/activemq-all-5.7.0.jar"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/OperatingSystemAbstraction"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/ApplicationLogging"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ApplicationMetrics"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

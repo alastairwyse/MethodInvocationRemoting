@@ -21,6 +21,7 @@ using NUnit.Framework;
 using NMock2;
 using MethodInvocationRemoting;
 using ApplicationLogging;
+using ApplicationMetrics;
 
 namespace MethodInvocationRemotingLoggingTests
 {

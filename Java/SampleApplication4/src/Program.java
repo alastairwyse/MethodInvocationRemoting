@@ -17,8 +17,9 @@
 import java.io.*;
 import java.net.*;
 import java.util.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Method Invocation Remoting framework fourth sample application.

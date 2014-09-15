@@ -4,14 +4,24 @@
 
 	<property name="DestinationDirectory" value="../AntBuild"/>
 
-	<!-- Comment this section to disable logging -->
-	<property name="BeginLogging.token" value="*/"/>
+    <!-- Comment this section to disable logging -->
+    <property name="BeginLogging.token" value="*/"/>
     <property name="EndLogging.token" value="/*"/>
-        
+    
 
+    <!-- Comment this section to disable metrics -->
+    <property name="BeginMetrics.token" value="*/"/>
+    <property name="EndMetrics.token" value="/*"/>
+    
+    
     <!-- Uncomment this section to disable logging 
     <property name="BeginLogging.token" value=""/>
     <property name="EndLogging.token" value=""/>
+        -->
+        
+    <!-- Uncomment this section to disable metrics 
+    <property name="BeginMetrics.token" value=""/>
+    <property name="EndMetrics.token" value=""/>
         -->
        
 	<mkdir dir="${DestinationDirectory}/src/"/>
@@ -29,6 +39,8 @@
         <filterset begintoken="//[" endtoken="]">
             <filter token="BEGIN_LOGGING" value="${BeginLogging.token}"/>
             <filter token="END_LOGGING" value="${EndLogging.token}"/>
+            <filter token="BEGIN_METRICS" value="${BeginMetrics.token}"/>
+            <filter token="END_METRICS" value="${EndMetrics.token}"/>
         </filterset>
 	</copy>
 	<!-- Build the OperatingSystemAbstraction project -->
@@ -41,8 +53,18 @@
         <javac srcdir="../../ApplicationLogging/src" destdir="${DestinationDirectory}/bin/"/>
     	<jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/applicationlogging.jar" basedir="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/"/>
     </target>
+    <!-- Build the ApplicationMetrics project -->
+    <target name="ApplicationMetrics" depends="OperatingSystemAbstraction" description="Compile ApplicationMetrics" >
+        <javac srcdir="../../ApplicationMetrics/src" destdir="${DestinationDirectory}/bin/"/>
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationmetrics/applicationmetrics.jar" basedir="${DestinationDirectory}/bin/net/alastairwyse/applicationmetrics/"/>
+    </target>
+    <!-- Build the MethodInvocationRemotingMetrics project -->
+    <target name="MethodInvocationRemotingMetrics" depends="ApplicationMetrics" description="Compile MethodInvocationRemotingMetrics" >
+        <javac srcdir="../../MethodInvocationRemotingMetrics/src" destdir="${DestinationDirectory}/bin/"/>
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/methodinvocationremotingmetrics/methodinvocationremotingmetrics.jar" basedir="${DestinationDirectory}/bin/net/alastairwyse/methodinvocationremotingmetrics/"/>
+    </target>
 	<!-- Build the MethodInvocationRemoting project -->
-    <target name="MethodInvocationRemoting" depends="ApplicationLogging" description="Compile MethodInvocationRemoting" >
+    <target name="MethodInvocationRemoting" depends="ApplicationLogging,ApplicationMetrics,MethodInvocationRemotingMetrics" description="Compile MethodInvocationRemoting" >
         <javac srcdir="${DestinationDirectory}/src" destdir="${DestinationDirectory}/bin/">
             <classpath>        
                 <pathelement location="../../Referenced Libraries/activemq-all-5.7.0.jar"/>  
@@ -58,8 +80,16 @@
     <target name="ApplicationLoggingJar" depends="OperatingSystemAbstractionJar" description="Create ApplicationLogging Jar" >
         <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationlogging/applicationlogging.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/applicationlogging/*.class"/>
     </target>
+    <!-- Create Jar for the ApplicationMetrics project -->
+    <target name="ApplicationMetricsJar" depends="OperatingSystemAbstractionJar" description="Create ApplicationMetricsJar" >
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/applicationmetrics/applicationmetrics.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/applicationmetrics/*.class"/>
+    </target>
+    <!-- Create Jar for the MethodInvocationRemotingMetrics project -->
+    <target name="MethodInvocationRemotingMetricsJar" depends="ApplicationMetricsJar" description="Create MethodInvocationRemotingMetricsJar" >
+        <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/methodinvocationremotingmetrics/methodinvocationremotingmetrics.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/methodinvocationremotingmetrics/*.class"/>
+    </target>
 	<!-- Create Jar for the MethodInvocationRemoting project -->
-    <target name="MethodInvocationRemotingJar" depends="ApplicationLoggingJar" description="Create MethodInvocationRemoting Jar" >
+    <target name="MethodInvocationRemotingJar" depends="ApplicationLoggingJar,ApplicationMetricsJar,MethodInvocationRemotingMetricsJar" description="Create MethodInvocationRemoting Jar" >
         <jar destfile="${DestinationDirectory}/bin/net/alastairwyse/methodinvocationremoting/methodinvocationremoting.jar" basedir="${DestinationDirectory}/bin/" includes="net/alastairwyse/methodinvocationremoting/*.class"/>
     </target>
 </project>

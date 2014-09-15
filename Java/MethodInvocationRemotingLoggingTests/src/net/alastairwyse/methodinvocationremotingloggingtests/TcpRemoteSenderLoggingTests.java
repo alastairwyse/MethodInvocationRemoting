@@ -22,9 +22,10 @@ import java.nio.*;
 import static org.mockito.Mockito.*;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for the logging functionality in class methodinvocationremoting.TcpRemoteSender.
@@ -42,7 +43,7 @@ public class TcpRemoteSenderLoggingTests {
     public void setUp() throws Exception {
         mockSocketChannel = mock(ISocketChannel.class);
         mockApplicationLogger = mock(IApplicationLogger.class);
-        testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 3, 10, 25, 10, mockApplicationLogger, mockSocketChannel);
+        testTcpRemoteSender = new TcpRemoteSender(testIpAddress, testPort, 3, 10, 25, 10, mockApplicationLogger, new NullMetricLogger(), mockSocketChannel);
     }
     
     @Test

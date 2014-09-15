@@ -19,9 +19,10 @@ using System.Collections.Generic;
 using System.Text;
 using NUnit.Framework;
 using NMock2;
-using MethodInvocationRemoting;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemoting;
 
 namespace MethodInvocationRemotingUnitTests
 {
@@ -55,7 +56,7 @@ namespace MethodInvocationRemotingUnitTests
             mockTcpClient = mocks.NewMock<ITcpClient>();
             mockNetworkStream = mocks.NewMock<INetworkStream>();
             testIpAddress = System.Net.IPAddress.Parse("127.0.0.1");
-            testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 3, 10, 25, 10, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockTcpClient);
+            testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 3, 10, 25, 10, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockTcpClient);
             testMessageByteArray = new byte[] { 0x3c, 0x41, 0x02, 0x42, 0x03, 0x43, 0x3e };  // Equivalent to '<A[ASCII message start]B[ASCII message end]C>'
             testMessageSequenceNumber = new byte[] { 1, 0, 0, 0 };  // Sequence number 1 (first sequence number sent after instantiating the class), encoded as a little endian
             testMessageSizeHeader = new byte[] { 7, 0, 0, 0, 0, 0, 0, 0 };  // Size of the above test message, encoded as a little endian long
@@ -73,7 +74,7 @@ namespace MethodInvocationRemotingUnitTests
         {
             ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(delegate
             {
-                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, -1, 1000, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockTcpClient);
+                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, -1, 1000, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockTcpClient);
             });
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'connectRetryCount' must be greater than or equal to 0."));
             Assert.AreEqual("connectRetryCount", e.ParamName);
@@ -84,7 +85,7 @@ namespace MethodInvocationRemotingUnitTests
         {
             ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(delegate
             {
-                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 10, -1, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockTcpClient);
+                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 10, -1, 60000, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockTcpClient);
             });
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'connectRetryInterval' must be greater than or equal to 0."));
             Assert.AreEqual("connectRetryInterval", e.ParamName);
@@ -95,7 +96,7 @@ namespace MethodInvocationRemotingUnitTests
         {
             ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(delegate
             {
-                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 100, 10, -1, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockTcpClient);
+                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 100, 10, -1, 100, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockTcpClient);
             });
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'acknowledgementReceiveTimeout' must be greater than or equal to 0."));
             Assert.AreEqual("acknowledgementReceiveTimeout", e.ParamName);
@@ -106,7 +107,7 @@ namespace MethodInvocationRemotingUnitTests
         {
             ArgumentOutOfRangeException e = Assert.Throws<ArgumentOutOfRangeException>(delegate
             {
-                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 100, 10, 60000, -1, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockTcpClient);
+                testTcpRemoteSender = new TcpRemoteSender(testIpAddress.ToString(), testPort, 100, 10, 60000, -1, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockTcpClient);
             });
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'acknowledgementReceiveRetryInterval' must be greater than or equal to 0."));
             Assert.AreEqual("acknowledgementReceiveRetryInterval", e.ParamName);

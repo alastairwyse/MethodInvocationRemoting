@@ -31,11 +31,11 @@ public class FileApplicationLogger extends ApplicationLoggerBase implements IApp
     
     /**
      * Initialises a new instance of the FileApplicationLogger class.
-     * @param minimumLogLevel     The minimum level of log entries to write to the console.  Log entries with a level of importance lower than this parameter will not be written.
-     * @param separatorCharacter  The character to use to separate fields (e.g. date/time stamp, log level, log text) in the log entry.
-     * @param indentString        The string to use for indentation (e.g. of an exception stack trace) in the log entry.
-     * @param filePath            The full path of the file to write the log entries to.
-     * @exception IOException     If the file specified in the filePath parameter cannot be opened.
+     * @param  minimumLogLevel     The minimum level of log entries to write to the console.  Log entries with a level of importance lower than this parameter will not be written.
+     * @param  separatorCharacter  The character to use to separate fields (e.g. date/time stamp, log level, log text) in the log entry.
+     * @param  indentString        The string to use for indentation (e.g. of an exception stack trace) in the log entry.
+     * @param  filePath            The full path of the file to write the log entries to.
+     * @throws IOException         If the file specified in the filePath parameter cannot be opened.
      */
     public FileApplicationLogger(LogLevel minimumLogLevel, char separatorCharacter, String indentString, String filePath) throws IOException {
         super(minimumLogLevel, separatorCharacter, indentString);
@@ -44,13 +44,13 @@ public class FileApplicationLogger extends ApplicationLoggerBase implements IApp
     
     /**
      * Initialises a new instance of the FileApplicationLogger class.
-     * @param minimumLogLevel     The minimum level of log entries to write to the console.  Log entries with a level of importance lower than this parameter will not be written.
-     * @param separatorCharacter  The character to use to separate fields (e.g. date/time stamp, log level, log text) in the log entry.
-     * @param indentString        The string to use for indentation (e.g. of an exception stack trace) in the log entry.
-     * @param dateTimeFormat      The date formatter to use to format dates and times in the resulting logging information.
-     * @param filePath            The full path of the file to write the log entries to.
-     * @param appendToFile        Whether to append to an existing log file (if it exists) or overwrite.  A value of true causes appending.
-     * @exception IOException     If the file specified in the filePath parameter cannot be opened.
+     * @param  minimumLogLevel     The minimum level of log entries to write to the console.  Log entries with a level of importance lower than this parameter will not be written.
+     * @param  separatorCharacter  The character to use to separate fields (e.g. date/time stamp, log level, log text) in the log entry.
+     * @param  indentString        The string to use for indentation (e.g. of an exception stack trace) in the log entry.
+     * @param  dateTimeFormat      The date formatter to use to format dates and times in the resulting logging information.
+     * @param  filePath            The full path of the file to write the log entries to.
+     * @param  appendToFile        Whether to append to an existing log file (if it exists) or overwrite.  A value of true causes appending.
+     * @throws IOException         If the file specified in the filePath parameter cannot be opened.
      */
     public FileApplicationLogger(LogLevel minimumLogLevel, char separatorCharacter, String indentString, SimpleDateFormat dateTimeFormat, String filePath, boolean appendToFile) throws IOException {
         super(minimumLogLevel, separatorCharacter, indentString, dateTimeFormat);

@@ -21,7 +21,13 @@ import java.io.*;
 import java.util.zip.*;
 import org.apache.commons.codec.binary.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
+/**
+ * Decompresses a message, after receiving it from a remote location via an underlying IRemoteReceiver implementation.
+ * @author Alastair Wyse
+ */
 public class RemoteReceiverDecompressor implements IRemoteReceiver {
 
     private IRemoteReceiver remoteReceiver;
@@ -30,6 +36,7 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
     private volatile boolean decompressing = false;
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the RemoteReceiverDecompressor class.
@@ -40,6 +47,7 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
         this.decompressionBufferSize = 1024;
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -51,6 +59,29 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
         this(underlyingRemoteReceiver);
         this.logger = logger;
         loggingUtilities = new LoggingUtilities(logger);
+    }
+    
+    /**
+     * Initialises a new instance of the RemoteReceiverDecompressor class.
+     * @param underlyingRemoteReceiver  The remote receiver to receive the message from before decompressing.
+     * @param metricLogger              The metric logger to write metric and instrumentation events to.
+     */
+    public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, IMetricLogger metricLogger) {
+        this(underlyingRemoteReceiver);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the RemoteReceiverDecompressor class.
+     * @param underlyingRemoteReceiver  The remote receiver to receive the message from before decompressing.
+     * @param logger                    The logger to write log events to.
+     * @param metricLogger              The metric logger to write metric and instrumentation events to.
+     */
+    public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(underlyingRemoteReceiver);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
     }
     
     /**
@@ -80,6 +111,33 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
         loggingUtilities = new LoggingUtilities(logger);
     }
     
+    /**
+     * Initialises a new instance of the RemoteReceiverDecompressor class.
+     * @param underlyingRemoteReceiver   The remote receiver to receive the message from before compressing.
+     * @param decompressionBufferSize    The size of the buffer to use when decompressing the message in bytes.  Denotes how much data will be read from the internal stream decompressor class in each read operation.  Should be set to match the expected decompressed message size as closely as possible.
+     * @param metricLogger               The metric logger to write metric and instrumentation events to.
+     * @throws IllegalArgumentException  If the specified decompressionBufferSize is less than 1.
+     */
+    public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, int decompressionBufferSize, IMetricLogger metricLogger) {
+        this(underlyingRemoteReceiver, decompressionBufferSize);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the RemoteReceiverDecompressor class.
+     * @param underlyingRemoteReceiver   The remote receiver to receive the message from before compressing.
+     * @param decompressionBufferSize    The size of the buffer to use when decompressing the message in bytes.  Denotes how much data will be read from the internal stream decompressor class in each read operation.  Should be set to match the expected decompressed message size as closely as possible.
+     * @param logger                     The logger to write log events to.
+     * @param metricLogger               The metric logger to write metric and instrumentation events to.
+     * @throws IllegalArgumentException  If the specified decompressionBufferSize is less than 1.
+     */
+    public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, int decompressionBufferSize, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(underlyingRemoteReceiver, decompressionBufferSize);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
+    }
+    
     @Override
     public String Receive() throws Exception {
         return DecompressString(remoteReceiver.Receive());
@@ -105,6 +163,10 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
      * @return             The decompressed string.
      */
     private String DecompressString(String inputString) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new StringDecompressTime());
+        //[END_METRICS] */
+        
         decompressing = true;
         
         Vector<byte[]> readBuffers = new Vector<byte[]>();
@@ -122,6 +184,10 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
                     if ((readBuffers.size() == 0) || (currentReadBufferPosition == decompressionBufferSize)) {
                         readBuffers.add(new byte[decompressionBufferSize]);
                         currentReadBufferPosition = 0;
+                        
+                        /* //[BEGIN_METRICS]
+                        metricLogger.Increment(new RemoteReceiverDecompressorReadBufferCreated());
+                        //[END_METRICS] */
                     }
                     currentReadBufferPosition = currentReadBufferPosition + bytesRead;
                     bytesRead = decompressor.read(readBuffers.lastElement(), currentReadBufferPosition, decompressionBufferSize - currentReadBufferPosition);
@@ -148,6 +214,10 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
             }
         }
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new StringDecompressTime());
+        metricLogger.Increment(new StringDecompressed());
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         loggingUtilities.LogDecompressedString(this, returnString);
         //[END_LOGGING] */

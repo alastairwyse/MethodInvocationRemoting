@@ -21,6 +21,8 @@ using System.Diagnostics;
 using System.Threading;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -44,6 +46,7 @@ namespace MethodInvocationRemoting
         private int messageSequenceNumber;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
         protected bool disposed;
         /// <summary>The string encoding to use when sending a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -54,11 +57,11 @@ namespace MethodInvocationRemoting
         /// <summary>The byte which is expected to be received back from the TcpRemoteReceiver to acknowledge receipt of the message.</summary>
         protected byte messageAcknowledgementByte = 0x06;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
         /// </summary>
@@ -111,17 +114,18 @@ namespace MethodInvocationRemoting
 
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
             client = new TcpClient();
 
             messageSequenceNumber = 1;
             disposed = false;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
         /// </summary>
@@ -137,11 +141,11 @@ namespace MethodInvocationRemoting
             this.ipAddress = System.Net.IPAddress.Parse(ipAddress);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
         /// </summary>
@@ -159,11 +163,56 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteSender(System.Net.IPAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IMetricLogger metricLogger)
+            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteSender(System.Net.IPAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
         /// </summary>
@@ -182,11 +231,58 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IMetricLogger metricLogger)
+            : this(System.Net.IPAddress.Parse("0.0.0.0"), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            this.ipAddress = System.Net.IPAddress.Parse(ipAddress);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.
+        /// </summary>
+        /// <param name="ipAddress">The remote IP address to connect to.</param>
+        /// <param name="port">The remote port to connect to.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
+        /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(System.Net.IPAddress.Parse("0.0.0.0"), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval)
+        {
+            this.ipAddress = System.Net.IPAddress.Parse(ipAddress);
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteSender class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
@@ -197,19 +293,20 @@ namespace MethodInvocationRemoting
         /// <param name="acknowledgementReceiveTimeout">The maximum time to wait for an acknowledgement of a message in milliseconds.</param>
         /// <param name="acknowledgementReceiveRetryInterval">The time between retries to check for an acknowledgement in milliseconds.</param>
         /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
         /// <param name="client">A test (mock) TCP client.</param>
-        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, ITcpClient client)
-            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger)
+        public TcpRemoteSender(string ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger, ITcpClient client)
+            : this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger, metricLogger)
         {
             this.client.Dispose();
             this.client = client;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Connect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Connects to the configured IP address and port.
         /// </summary>
@@ -223,11 +320,11 @@ namespace MethodInvocationRemoting
             AttemptConnect();
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Disconnect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Disconnects from the configured IP address and port.
         /// </summary>
@@ -244,6 +341,8 @@ namespace MethodInvocationRemoting
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteSender.Send(System.String)"]/*'/>
         public void Send(string message)
         {
+            metricsUtilities.Begin(new MessageSendTime());
+
             CheckNotDisposed();
             CheckConnected();
 
@@ -258,14 +357,16 @@ namespace MethodInvocationRemoting
 
             IncrementMessageSequenceNumber();
 
+            metricsUtilities.End(new MessageSendTime());
+            metricsUtilities.Increment(new MessageSent());
             loggingUtilities.Log(this, LogLevel.Information, "Message sent and acknowledged.");
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: AttemptConnect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Attempts to connect to the specified IP address and port, and retries for the specified number of times if the attempt is unsuccessful.
         /// </summary>
@@ -311,11 +412,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckConnected
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if a connection has not been established.
         /// </summary>
@@ -327,11 +428,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: EncodeAndSend
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Adds delimiter characters and header information to the specified message and sends it.
         /// </summary>
@@ -363,11 +464,11 @@ namespace MethodInvocationRemoting
             WaitForMessageAcknowledgement(networkStream);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: HandleExceptionAndResend
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Handles an exception that occurred when attempting to send a message, before reconnecting and re-sending.
         /// </summary>
@@ -421,6 +522,7 @@ namespace MethodInvocationRemoting
 
             client.Close();
             AttemptConnect();
+            metricsUtilities.Increment(new TcpRemoteSenderReconnected());
             try
             {
                 EncodeAndSend(message);
@@ -431,11 +533,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: WaitForMessageAcknowledgement
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Checks for a message acknowledgement on the specified network stream, and throws an exception if the acknowledgement is not received before the specified timeout period.
         /// </summary>
@@ -478,11 +580,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: EncodeAsLittleEndian
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Encodes the inputted byte array as little endian.
         /// </summary>
@@ -495,11 +597,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: IncrementMessageSequenceNumber
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Increments the internal message sequence number.
         /// </summary>
@@ -531,11 +633,11 @@ namespace MethodInvocationRemoting
             Dispose(false);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Dispose
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Provides a method to free unmanaged resources used by this class.
         /// </summary>
@@ -547,10 +649,10 @@ namespace MethodInvocationRemoting
                 if (disposing)
                 {
                     // Free other state (managed objects).
+                    client.Dispose();
                     ipAddress = null;
                 }
                 // Free your own state (unmanaged objects).
-                client.Dispose();
 
                 // Set large fields to null.
 
@@ -558,11 +660,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckNotDisposed
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if the disposed property is true.
         /// </summary>

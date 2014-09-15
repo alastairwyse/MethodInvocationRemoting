@@ -18,6 +18,8 @@ package net.alastairwyse.methodinvocationremoting;
 
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Receives messages from a remote location via the file system.
@@ -34,6 +36,7 @@ public class FileRemoteReceiver implements IRemoteReceiver {
     private volatile boolean cancelRequest;
     private IApplicationLogger logger;
     private LoggingUtilities loggingUtilities;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the FileRemoteReceiver class.
@@ -56,6 +59,7 @@ public class FileRemoteReceiver implements IRemoteReceiver {
 
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
         loggingUtilities = new LoggingUtilities(logger);
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -70,6 +74,33 @@ public class FileRemoteReceiver implements IRemoteReceiver {
         this.logger = logger;
         loggingUtilities = new LoggingUtilities(logger);
     }
+    
+    /**
+     * Initialises a new instance of the FileRemoteReceiver class.
+     * @param messageFilePath  The full path of the file used to receive messages.
+     * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
+     * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
+     * @param metricLogger     The metric logger to write metric and instrumentation events to.
+     */
+    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IMetricLogger metricLogger) {
+        this(messageFilePath, lockFilePath, readLoopTimeout);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the FileRemoteReceiver class.
+     * @param messageFilePath  The full path of the file used to receive messages.
+     * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
+     * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
+     * @param logger           The logger to write log events to.
+     * @param metricLogger     The metric logger to write metric and instrumentation events to.
+     */
+    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(messageFilePath, lockFilePath, readLoopTimeout);
+        this.logger = logger;
+        loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
+    }
         
     /**
      * Initialises a new instance of the FileRemoteReceiver class.
@@ -78,15 +109,17 @@ public class FileRemoteReceiver implements IRemoteReceiver {
      * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
      * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
      * @param logger           The logger to write log events to.
+     * @param metricLogger     The metric logger to write metric and instrumentation events to.
      * @param messageFile      A test (mock) message file.
      * @param fileSystem       A test (mock) file system.
      */
-    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IApplicationLogger logger, IFile messageFile, IFileSystem fileSystem) {
+    public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout, IApplicationLogger logger, IMetricLogger metricLogger, IFile messageFile, IFileSystem fileSystem) {
         this(messageFilePath, lockFilePath, readLoopTimeout);
         this.messageFile = messageFile;
         this.fileSystem = fileSystem;
         this.logger = logger;
         loggingUtilities = new LoggingUtilities(logger);
+        this.metricLogger = metricLogger;
     }
     
     @Override
@@ -98,8 +131,18 @@ public class FileRemoteReceiver implements IRemoteReceiver {
             while (cancelRequest == false) {
                 if (fileSystem.CheckFileExists(messageFilePath) == true) {
                     if (fileSystem.CheckFileExists(lockFilePath) == false) {
+                        /* //[BEGIN_METRICS]
+                        metricLogger.Begin(new MessageReceiveTime());
+                        //[END_METRICS] */
+                        
                         returnMessage = messageFile.ReadAll();
                         fileSystem.DeleteFile(messageFilePath);
+                        
+                        /* //[BEGIN_METRICS]
+                        metricLogger.End(new MessageReceiveTime());
+                        metricLogger.Increment(new MessageReceived());
+                        metricLogger.Add(new ReceivedMessageSize(returnMessage.length()));
+                        //[END_METRICS] */
                         /* //[BEGIN_LOGGING]
                         loggingUtilities.LogMessageReceived(this, returnMessage);
                         //[END_LOGGING] */

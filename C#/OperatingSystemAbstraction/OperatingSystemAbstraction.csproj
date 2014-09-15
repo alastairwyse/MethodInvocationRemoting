@@ -37,16 +37,36 @@
     <Compile Include="..\SolutionInfo.cs">
       <Link>SolutionInfo.cs</Link>
     </Compile>
+    <Compile Include="Console.cs" />
+    <Compile Include="CounterCreationData.cs" />
+    <Compile Include="CounterCreationDataCollection.cs" />
+    <Compile Include="CounterCreationDataFactory.cs" />
+    <Compile Include="DateTime.cs" />
     <Compile Include="ExtendedTcpListener.cs" />
     <Compile Include="File.cs" />
     <Compile Include="FileSystem.cs" />
+    <Compile Include="IConsole.cs" />
+    <Compile Include="ICounterCreationData.cs" />
+    <Compile Include="ICounterCreationDataCollection.cs" />
+    <Compile Include="ICounterCreationDataFactory.cs" />
+    <Compile Include="IDateTime.cs" />
     <Compile Include="IFile.cs" />
     <Compile Include="IFileSystem.cs" />
     <Compile Include="INetworkStream.cs" />
+    <Compile Include="IOleDbCommand.cs" />
+    <Compile Include="IOleDbConnection.cs" />
+    <Compile Include="IPerformanceCounter.cs" />
+    <Compile Include="IPerformanceCounterCategory.cs" />
+    <Compile Include="IPerformanceCounterFactory.cs" />
     <Compile Include="IStreamWriter.cs" />
     <Compile Include="ITcpClient.cs" />
     <Compile Include="ITcpListener.cs" />
     <Compile Include="NetworkStream.cs" />
+    <Compile Include="OleDbCommand.cs" />
+    <Compile Include="OleDbConnection.cs" />
+    <Compile Include="PerformanceCounter.cs" />
+    <Compile Include="PerformanceCounterCategory.cs" />
+    <Compile Include="PerformanceCounterFactory.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="StreamWriter.cs" />
     <Compile Include="TcpClient.cs" />

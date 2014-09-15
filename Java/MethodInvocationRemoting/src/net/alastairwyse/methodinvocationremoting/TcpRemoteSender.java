@@ -21,6 +21,8 @@ import java.net.*;
 import java.nio.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Sends messages to a remote location via a TCP socket connection.
@@ -37,6 +39,7 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
     private ISocketChannel socketChannel;
     private int messageSequenceNumber;
     private IApplicationLogger logger;
+    private IMetricLogger metricLogger;
     /** The string encoding to use when sending a message. */
     protected String stringEncodingCharset = "UTF-8";
     /** The byte which denotes the start of the message when sending. */
@@ -91,6 +94,7 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
         }
         
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        metricLogger = new NullMetricLogger();
         socketChannel = new SocketChannel();
 
         messageSequenceNumber = 1;
@@ -133,12 +137,78 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
      * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
      * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
      * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param metricLogger                         The metric logger to write metric and instrumentation events to.
+     */
+    public TcpRemoteSender(InetAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IMetricLogger metricLogger) {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param logger                               The logger to write log events to.
+     * @param metricLogger                         The metric logger to write metric and instrumentation events to.
+     */
+    public TcpRemoteSender(InetAddress ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.logger = logger;
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
      * @param logger                               The logger to write log events to.
      * @throws UnknownHostException                If the specified IP address could not be resolved.
      */
     public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger) throws UnknownHostException {
         this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
         this.logger = logger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param metricLogger                         The metric logger to write metric and instrumentation events to.
+     * @throws UnknownHostException                If the specified IP address could not be resolved.
+     */
+    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IMetricLogger metricLogger) throws UnknownHostException {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the TcpRemoteSender class.
+     * @param ipAddress                            The remote IP address to connect to.
+     * @param port                                 The remote port to connect to.
+     * @param connectRetryCount                    The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteReceiver.
+     * @param connectRetryInterval                 The interval between retries to connect or reconnect in milliseconds.
+     * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
+     * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
+     * @param logger                               The logger to write log events to.
+     * @param metricLogger                         The metric logger to write metric and instrumentation events to.
+     * @throws UnknownHostException                If the specified IP address could not be resolved.
+     */
+    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger) throws UnknownHostException {
+        this(ipAddress, port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval);
+        this.logger = logger;
+        this.metricLogger = metricLogger;
     }
     
     /**
@@ -151,11 +221,12 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
      * @param acknowledgementReceiveTimeout        The maximum time to wait for an acknowledgement of a message in milliseconds.
      * @param acknowledgementReceiveRetryInterval  The time between retries to check for an acknowledgement in milliseconds.
      * @param logger                               The logger to write log events to.
+     * @param metricLogger                         The metric logger to write metric and instrumentation events to.
      * @param socketChannel                        A test (mock) socket channel.
      * @throws UnknownHostException                If the specified IP address could not be resolved.
      */
-    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, ISocketChannel socketChannel) throws UnknownHostException {
-        this(InetAddress.getByName(ipAddress), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger);
+    public TcpRemoteSender(String ipAddress, int port, int connectRetryCount, int connectRetryInterval, int acknowledgementReceiveTimeout, int acknowledgementReceiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger, ISocketChannel socketChannel) throws UnknownHostException {
+        this(InetAddress.getByName(ipAddress), port, connectRetryCount, connectRetryInterval, acknowledgementReceiveTimeout, acknowledgementReceiveRetryInterval, logger, metricLogger);
         this.socketChannel = socketChannel;
     }
     
@@ -192,6 +263,10 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
     
     @Override
     public void Send(String message) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new MessageSendTime());
+        //[END_METRICS] */
+        
         if (socketChannel.isConnected() == false) {
             throw new Exception("Connection to TCP socket has not been established.");
         }
@@ -205,6 +280,10 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
         
         IncrementMessageSequenceNumber();
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new MessageSendTime());
+        metricLogger.Increment(new MessageSent());
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         logger.Log(this, LogLevel.Information, "Message sent and acknowledged.");
         //[END_LOGGING] */
@@ -342,6 +421,9 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
 
         socketChannel.close();
         AttemptConnect();
+        /* //[BEGIN_METRICS]
+        metricLogger.Increment(new TcpRemoteSenderReconnected());
+        //[END_METRICS] */
         try
         {
             EncodeAndSend(message);

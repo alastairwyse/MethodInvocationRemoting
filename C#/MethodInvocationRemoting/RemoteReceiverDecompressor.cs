@@ -20,6 +20,8 @@ using System.Text;
 using System.IO;
 using System.IO.Compression;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -29,7 +31,7 @@ namespace MethodInvocationRemoting
     //
     //******************************************************************************
     /// <summary>
-    /// Decompresses a message, after receiving it from a remote location via an underlying IRemoteSender implementation.
+    /// Decompresses a message, after receiving it from a remote location via an underlying IRemoteReceiver implementation.
     /// </summary>
     public class RemoteReceiverDecompressor : IRemoteReceiver
     {
@@ -39,12 +41,13 @@ namespace MethodInvocationRemoting
         private volatile bool decompressing = false;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteReceiverDecompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
         /// </summary>
@@ -55,13 +58,14 @@ namespace MethodInvocationRemoting
             this.decompressionBufferSize = 1024;
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteReceiverDecompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
         /// </summary>
@@ -74,11 +78,46 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteReceiverDecompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteReceiver">The remote receiver to receive the message from before decompressing.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, IMetricLogger metricLogger)
+            : this(underlyingRemoteReceiver)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteReceiverDecompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteReceiver">The remote receiver to receive the message from before decompressing.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(underlyingRemoteReceiver)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteReceiverDecompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
         /// </summary>
@@ -94,11 +133,11 @@ namespace MethodInvocationRemoting
             this.decompressionBufferSize = decompressionBufferSize;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteReceiverDecompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
         /// </summary>
@@ -110,6 +149,43 @@ namespace MethodInvocationRemoting
         {
             this.logger = logger;
             loggingUtilities = new LoggingUtilities(logger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteReceiverDecompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteReceiver">The remote receiver to receive the message from before compressing.</param>
+        /// <param name="decompressionBufferSize">The size of the buffer to use when decompressing the message in bytes.  Denotes how much data will be read from the internal stream decompressor class in each read operation.  Should be set to match the expected decompressed message size as closely as possible.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, int decompressionBufferSize, IMetricLogger metricLogger)
+            : this(underlyingRemoteReceiver, decompressionBufferSize)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteReceiverDecompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteReceiverDecompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteReceiver">The remote receiver to receive the message from before compressing.</param>
+        /// <param name="decompressionBufferSize">The size of the buffer to use when decompressing the message in bytes.  Denotes how much data will be read from the internal stream decompressor class in each read operation.  Should be set to match the expected decompressed message size as closely as possible.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteReceiverDecompressor(IRemoteReceiver underlyingRemoteReceiver, int decompressionBufferSize, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(underlyingRemoteReceiver, decompressionBufferSize)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteReceiver.Receive"]/*'/>
@@ -127,11 +203,11 @@ namespace MethodInvocationRemoting
             loggingUtilities.Log(this, LogLevel.Information, "Receive operation cancelled.");
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: DecompressString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Decompresses a string.
         /// </summary>
@@ -139,6 +215,8 @@ namespace MethodInvocationRemoting
         /// <returns>The decompressed string.</returns>
         private string DecompressString(string inputString)
         {
+            metricsUtilities.Begin(new StringDecompressTime());
+
             decompressing = true;
 
             List<byte[]> readBuffers = new List<byte[]>();
@@ -160,6 +238,8 @@ namespace MethodInvocationRemoting
                         {
                             readBuffers.Add(new byte[decompressionBufferSize]);
                             currentReadBufferPosition = 0;
+
+                            metricsUtilities.Increment(new RemoteReceiverDecompressorReadBufferCreated());
                         }
                         bytesRead = decompressor.Read(readBuffers[readBuffers.Count - 1], currentReadBufferPosition, decompressionBufferSize - currentReadBufferPosition);
                         currentReadBufferPosition = currentReadBufferPosition + bytesRead;
@@ -192,6 +272,8 @@ namespace MethodInvocationRemoting
                 throw new Exception("Error decompressing message.", e);
             }
 
+            metricsUtilities.End(new StringDecompressTime());
+            metricsUtilities.Increment(new StringDecompressed());
             loggingUtilities.LogDecompressedString(this, returnString);
 
             decompressing = false;

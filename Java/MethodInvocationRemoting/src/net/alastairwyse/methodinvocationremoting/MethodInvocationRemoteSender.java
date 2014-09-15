@@ -17,6 +17,8 @@
 package net.alastairwyse.methodinvocationremoting;
 
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Sends method invocations (represented by IMethodInvocation objects) to remote locations.
@@ -28,6 +30,7 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
     private IRemoteSender sender;
     private IRemoteReceiver receiver;
     private IApplicationLogger logger;
+    private IMetricLogger metricLogger;
     
     /**
      * Initialises a new instance of the MethodInvocationRemoteSender class.
@@ -41,6 +44,7 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         this.sender = sender;
         this.receiver = receiver;
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -55,8 +59,38 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         this.logger = logger;
     }
     
+    /**
+     * Initialises a new instance of the MethodInvocationRemoteSender class.
+     * @param serializer    Object to use to serialize method invocations.
+     * @param sender        Object to use to send serialized method invocations.
+     * @param receiver      Object to use to send serialized method invocations.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IMetricLogger metricLogger) {
+        this(serializer, sender, receiver);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initialises a new instance of the MethodInvocationRemoteSender class.
+     * @param serializer    Object to use to serialize method invocations.
+     * @param sender        Object to use to send serialized method invocations.
+     * @param receiver      Object to use to send serialized method invocations.
+     * @param logger        The logger to write log events to.
+     * @param metricLogger  The metric logger to write metric and instrumentation events to.
+     */
+    public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(serializer, sender, receiver);
+        this.logger = logger;
+        this.metricLogger = metricLogger;
+    }
+    
     @Override
     public Object InvokeMethod(IMethodInvocation inputMethodInvocation) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new RemoteMethodSendTime());
+        //[END_METRICS] */
+        
         Object returnValue;
 
         // Check that inputted method invocation does not have a void return type.
@@ -75,6 +109,10 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
             throw new DeserializationException("Failed to deserialize return value.", e);
         }
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new RemoteMethodSendTime());
+        metricLogger.Increment(new RemoteMethodSent());
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         try {
             logger.Log(this, LogLevel.Information, "Invoked method '" + inputMethodInvocation.getName() + "'.");
@@ -88,6 +126,10 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
 
     @Override
     public void InvokeVoidMethod(IMethodInvocation inputMethodInvocation) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new RemoteMethodSendTime());
+        //[END_METRICS] */
+        
         // Check that inputted method invocation has a void return type.
         if (inputMethodInvocation.getReturnType() != null)
         {
@@ -100,6 +142,10 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
             throw new Exception("Invocation of void method returned non-void.");
         }
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new RemoteMethodSendTime());
+        metricLogger.Increment(new RemoteMethodSent());
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         try {
             logger.Log(this, LogLevel.Information, "Invoked void method '" + inputMethodInvocation.getName() + "'.");

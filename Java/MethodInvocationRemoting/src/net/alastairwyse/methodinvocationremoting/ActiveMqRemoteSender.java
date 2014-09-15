@@ -18,6 +18,8 @@ package net.alastairwyse.methodinvocationremoting;
 
 import javax.jms.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremotingmetrics.*;
 
 /**
  * Sends messages to a remote location via Apache ActiveMQ.
@@ -27,6 +29,7 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
 
     private MessageProducer producer;
     private IApplicationLogger logger;
+    private IMetricLogger metricLogger;
     
     /**
      * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.
@@ -37,6 +40,7 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
     public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter) {
         super(connectUriName, queueName, messageFilter);
         logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
+        metricLogger = new NullMetricLogger();
     }
     
     /**
@@ -52,22 +56,50 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
     }
     
     /**
+     * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.
+     * @param connectUriName  The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName       The name of the queue to connect to.
+     * @param messageFilter   The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param metricLogger    The metric logger to write metric and instrumentation events to.
+     */
+    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IMetricLogger metricLogger) {
+        this(connectUriName, queueName, messageFilter);
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
+     * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.
+     * @param connectUriName  The uniform resource identifier of the ActiveMQ broker to connect to.
+     * @param queueName       The name of the queue to connect to.
+     * @param messageFilter   The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
+     * @param logger          The logger to write log events to.
+     * @param metricLogger    The metric logger to write metric and instrumentation events to.
+     */
+    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IApplicationLogger logger, IMetricLogger metricLogger) {
+        this(connectUriName, queueName, messageFilter);
+        this.logger = logger;
+        this.metricLogger = metricLogger;
+    }
+    
+    /**
      * Initializes a new instance of the methodinvocationremoting.ActiveMqRemoteSender class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
      * @param connectUriName         The uniform resource identifier of the ActiveMQ broker to connect to.
      * @param queueName              The name of the queue to connect to.
      * @param messageFilter          The filter to apply to the queue.  Allows multiple remote senders and receivers to use the same queue by each applying their own unique filter.
      * @param logger                 The logger to write log events to.
+     * @param metricLogger           The metric logger to write metric and instrumentation events to.
      * @param testConnectionFactory  A test (mock) jms connection factory.
      * @param testConnection         A test (mock) jms connection.
      * @param testSession            A test (mock) jms session.
      * @param testDestination        A test (mock) jms destination.
      * @param testProducer           A test (mock) jms message producer.
      */
-    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IApplicationLogger logger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageProducer testProducer) {
+    public ActiveMqRemoteSender(String connectUriName, String queueName, String messageFilter, IApplicationLogger logger, IMetricLogger metricLogger, ConnectionFactory testConnectionFactory, Connection testConnection, Session testSession, Destination testDestination, MessageProducer testProducer) {
         super(connectUriName, queueName, messageFilter, testConnectionFactory, testConnection, testSession, testDestination);
         producer = testProducer;
         this.logger = logger;
+        this.metricLogger = metricLogger;
     }
     
     @Override
@@ -106,6 +138,10 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
 
     @Override
     public void Send(String message) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new MessageSendTime());
+        //[END_METRICS] */
+        
         CheckConnectionOpen();
         try {
             TextMessage textMessage = session.createTextMessage(message);
@@ -116,6 +152,10 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
             throw new Exception("Error sending message.", e);
         }
         
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new MessageSendTime());
+        metricLogger.Increment(new MessageSent());
+        //[END_METRICS] */
         /* //[BEGIN_LOGGING]
         logger.Log(this, LogLevel.Information, "Message sent.");
         //[END_LOGGING] */

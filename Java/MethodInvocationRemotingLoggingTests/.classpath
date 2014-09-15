@@ -9,5 +9,7 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="lib" path="../Referenced Libraries/commons-codec-1.9.jar"/>
 	<classpathentry kind="lib" path="../Referenced Libraries/activemq-all-5.7.0.jar"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/ApplicationMetrics"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/MethodInvocationRemotingMetrics"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

@@ -20,6 +20,8 @@ using System.Text;
 using System.Threading;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -64,6 +66,7 @@ namespace MethodInvocationRemoting
         private int lastMessageSequenceNumber;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
         protected bool disposed;
         /// <summary>The string encoding to expect when receiving a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -74,11 +77,11 @@ namespace MethodInvocationRemoting
         /// <summary>The byte used to send back to the TcpRemoteSender to acknowledge receipt of the message.</summary>
         protected byte messageAcknowledgementByte = 0x06;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.
         /// </summary>
@@ -120,17 +123,18 @@ namespace MethodInvocationRemoting
             listener = new TcpListener(System.Net.IPAddress.Any, port);
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
 
             lastMessageSequenceNumber = 0;
             connected = false;
             disposed = false;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.
         /// </summary>
@@ -146,11 +150,52 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: TcpRemoteReceiver (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.
+        /// </summary>
+        /// <param name="port">The port to listen for incoming connections on.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="receiveRetryInterval">The time to wait between attempts to receive a message in milliseconds.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IMetricLogger metricLogger)
+            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.
+        /// </summary>
+        /// <param name="port">The port to listen for incoming connections on.</param>
+        /// <param name="connectRetryCount">The number of times to retry when initially connecting, or attempting to reconnect to a TcpRemoteSender.</param>
+        /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
+        /// <param name="receiveRetryInterval">The time to wait between attempts to receive a message in milliseconds.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: TcpRemoteReceiver (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.TcpRemoteReceiver class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
@@ -159,19 +204,20 @@ namespace MethodInvocationRemoting
         /// <param name="connectRetryInterval">The interval between retries to connect or reconnect in milliseconds.</param>
         /// <param name="receiveRetryInterval">The time to wait between attempts to receive a message in milliseconds.</param>
         /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
         /// <param name="listener">A test (mock) TCP listener.</param>
-        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IApplicationLogger logger, ITcpListener listener) 
-            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, logger)
+        public TcpRemoteReceiver(int port, int connectRetryCount, int connectRetryInterval, int receiveRetryInterval, IApplicationLogger logger, IMetricLogger metricLogger, ITcpListener listener)
+            : this(port, connectRetryCount, connectRetryInterval, receiveRetryInterval, logger, metricLogger)
         {
             this.listener.Dispose();
             this.listener = listener;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Connect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Listens for and accepts an incoming connection on the configured TCP port.
         /// </summary>
@@ -185,11 +231,11 @@ namespace MethodInvocationRemoting
             AttemptConnect();
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Disconnect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Disconnects a connected client and stops listening on the configured TCP port.
         /// </summary>
@@ -227,6 +273,7 @@ namespace MethodInvocationRemoting
                 {
                     logger.Log(this, LogLevel.Warning, "New connection detected.  Attempting reconnect.");
                     AttemptConnect();
+                    metricsUtilities.Increment(new TcpRemoteReceiverReconnected());
                 }
 
                 // Check if any data has been received from the TcpRemoteSender, and handle and retry if an exception occurs
@@ -243,6 +290,8 @@ namespace MethodInvocationRemoting
                 // If data has been received, attempt to read and parse it, and handle and retry if an exception occurs
                 if (availableData != 0)
                 {
+                    metricsUtilities.Begin(new MessageReceiveTime());
+
                     MessageParseState parseState = MessageParseState.StartOfMessage;
                     Queue<byte> messageBytes = null;  // Holds the bytes which form the body of the message received
 
@@ -265,17 +314,24 @@ namespace MethodInvocationRemoting
                         {
                             lastMessageSequenceNumber = messageSequenceNumber;
                             returnMessage = stringEncoding.GetString(messageBytes.ToArray());
+
+                            metricsUtilities.End(new MessageReceiveTime());
+                            metricsUtilities.Increment(new MessageReceived());
+                            metricsUtilities.Add(new ReceivedMessageSize(returnMessage.Length));
                             loggingUtilities.LogMessageReceived(this, returnMessage);
                             break;
                         }
                         else
                         {
+                            metricsUtilities.Increment(new TcpRemoteReceiverDuplicateSequenceNumber());
                             logger.Log(this, LogLevel.Warning, "Duplicate message with sequence number " + messageSequenceNumber + " received.  Message discarded.");
                             // Reset variables
                             messageSequenceNumber = -1;
                             returnMessage = "";
                         }
                     }
+
+                    metricsUtilities.End(new MessageReceiveTime());
                 }
 
                 waitingForRetry = true;
@@ -302,11 +358,11 @@ namespace MethodInvocationRemoting
 
         #region Private Methods
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: AttemptConnect
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Attempts to accept an incoming connection, and retries for the specified number of times if the attempt is unsuccessful.
         /// </summary>
@@ -375,11 +431,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: SetupAndReadMessage
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Sets up variables and objects, and calls routines to read a message.
         /// </summary>
@@ -412,11 +468,11 @@ namespace MethodInvocationRemoting
             return messageBytes;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: HandleExceptionAndCheckAvailableData
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Handles an exception that occurred when attempting to get the amount of data availble from the network, and retries this operation.
         /// </summary>
@@ -435,6 +491,7 @@ namespace MethodInvocationRemoting
 
             int availableData = 0;
             AttemptConnect();
+            metricsUtilities.Increment(new TcpRemoteReceiverReconnected());
             try
             {
                 availableData = client.Available;
@@ -447,11 +504,11 @@ namespace MethodInvocationRemoting
             return availableData;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: HandleExceptionAndRereadMessage
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Handles an exception that occurred when attempting to read a message, before re-establishing the connection and repeating the read operation.
         /// </summary>
@@ -500,6 +557,7 @@ namespace MethodInvocationRemoting
 
             Queue<byte> messageBytes = new Queue<byte>();
             AttemptConnect();
+            metricsUtilities.Increment(new TcpRemoteReceiverReconnected());
             parseState = MessageParseState.StartOfMessage;
             try
             {
@@ -513,11 +571,11 @@ namespace MethodInvocationRemoting
             return messageBytes;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: ReadAndParseMessageData
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Reads bytes from the inputted network stream and parses them, storing the results in the inputted parameters.
         /// </summary>
@@ -614,11 +672,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: DisposeClient
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Calls the Dispose() method on the client, if it has been initialised.
         /// </summary>
@@ -627,14 +685,15 @@ namespace MethodInvocationRemoting
             if (client != null)
             {
                 client.Dispose();
+                client = null;
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckConnected
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if a connection has not been established.
         /// </summary>
@@ -664,11 +723,11 @@ namespace MethodInvocationRemoting
             Dispose(false);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Dispose
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Provides a method to free unmanaged resources used by this class.
         /// </summary>
@@ -680,14 +739,15 @@ namespace MethodInvocationRemoting
                 if (disposing)
                 {
                     // Free other state (managed objects).
+                    DisposeClient();
+                    if (listener != null)
+                    {
+                        listener.Dispose();
+                        listener = null;
+                    }
                 }
                 // Free your own state (unmanaged objects).
-                DisposeClient();
-                if (listener != null)
-                {
-                    listener.Dispose();
-                }
-
+                
                 // Set large fields to null.
 
                 connected = false;
@@ -695,11 +755,11 @@ namespace MethodInvocationRemoting
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckNotDisposed
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if the disposed property is true.
         /// </summary>

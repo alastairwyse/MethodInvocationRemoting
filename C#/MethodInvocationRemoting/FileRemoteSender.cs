@@ -19,6 +19,8 @@ using System.Collections.Generic;
 using System.Text;
 using OperatingSystemAbstraction;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -38,16 +40,17 @@ namespace MethodInvocationRemoting
         private string lockFilePath;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
         /// <summary>
         /// Indicates whether the object has been disposed.
         /// </summary>
         protected bool disposed;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.
         /// </summary>
@@ -71,15 +74,16 @@ namespace MethodInvocationRemoting
 
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
 
             disposed = false;
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.
         /// </summary>
@@ -93,21 +97,59 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: FileRemoteSender (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to send messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public FileRemoteSender(string messageFilePath, string lockFilePath, IMetricLogger metricLogger)
+            : this(messageFilePath, lockFilePath)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.
+        /// </summary>
+        /// <param name="messageFilePath">The full path of the file used to send messages.</param>
+        /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public FileRemoteSender(string messageFilePath, string lockFilePath, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(messageFilePath, lockFilePath)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileRemoteSender (constructor)
+        //
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.FileRemoteSender class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
         /// <param name="messageFilePath">The full path of the file used to send messages.</param>
         /// <param name="lockFilePath">The full path of the file used to indicate when the message file is locked for writing.</param>
         /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
         /// <param name="messageFile">A test (mock) message file.</param>
         /// <param name="lockFile">A test (mock) lock file.</param>
         /// <param name="fileSystem">A test (mock) file system.</param>
-        public FileRemoteSender(string messageFilePath, string lockFilePath, IApplicationLogger logger, IFile messageFile, IFile lockFile, IFileSystem fileSystem)
+        public FileRemoteSender(string messageFilePath, string lockFilePath, IApplicationLogger logger, IMetricLogger metricLogger, IFile messageFile, IFile lockFile, IFileSystem fileSystem)
             : this(messageFilePath, lockFilePath)
         {
             this.messageFile = messageFile;
@@ -115,11 +157,14 @@ namespace MethodInvocationRemoting
             this.fileSystem = fileSystem;
             this.logger = logger;
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteSender.Send(System.String)"]/*'/>
         public void Send(string message)
         {
+            metricsUtilities.Begin(new MessageSendTime());
+
             CheckNotDisposed();
 
             try
@@ -135,6 +180,8 @@ namespace MethodInvocationRemoting
                 throw new Exception("Error sending message.", e);
             }
 
+            metricsUtilities.End(new MessageSendTime());
+            metricsUtilities.Increment(new MessageSent());
             loggingUtilities.Log(this, LogLevel.Information, "Message sent.");
         }
 
@@ -154,11 +201,11 @@ namespace MethodInvocationRemoting
             Dispose(false);
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: Dispose
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Provides a method to free unmanaged resources used by this class.
         /// </summary>
@@ -170,21 +217,23 @@ namespace MethodInvocationRemoting
                 if (disposing)
                 {
                     // Free other state (managed objects).
+                    messageFile.Dispose();
+                    lockFile.Dispose();
+                    lockFilePath = null;
                 }
                 // Free your own state (unmanaged objects).
-                messageFile.Dispose();
-                lockFile.Dispose();
+
                 // Set large fields to null.
-                lockFilePath = null;
+
                 disposed = true;
             }
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CheckNotDisposed
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Throws an exception if the disposed property is true.
         /// </summary>

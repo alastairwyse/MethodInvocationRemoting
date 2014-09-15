@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ApplicationLogging")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("Provides interfaces and classes to allow simple logging from a client application")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ApplicationLogging")]

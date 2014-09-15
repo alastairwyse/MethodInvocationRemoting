@@ -23,8 +23,9 @@ import org.junit.Test;
 import javax.jms.*;
 
 import static org.mockito.Mockito.*;
-import net.alastairwyse.methodinvocationremoting.*;
 import net.alastairwyse.applicationlogging.*;
+import net.alastairwyse.applicationmetrics.*;
+import net.alastairwyse.methodinvocationremoting.*;
 
 /**
  * Unit tests for class methodinvocationremoting.ActiveMqRemoteReceiver.
@@ -50,7 +51,7 @@ public class ActiveMqRemoteReceiverTests {
         mockSession = mock(Session.class);
         mockDestination = mock(Destination.class);
         mockConsumer = mock(MessageConsumer.class);
-        testActiveMqRemoteReceiver = new ActiveMqRemoteReceiver(connectUriName, queueName, messageFilter, 1000, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), mockConnectionFactory, mockConnection, mockSession, mockDestination, mockConsumer);
+        testActiveMqRemoteReceiver = new ActiveMqRemoteReceiver(connectUriName, queueName, messageFilter, 1000, new ConsoleApplicationLogger(LogLevel.Warning, '|', "  "), new NullMetricLogger(), mockConnectionFactory, mockConnection, mockSession, mockDestination, mockConsumer);
     }
     
     @Test

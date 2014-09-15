@@ -28,7 +28,7 @@ namespace SampleApplication4
     /// <summary>
     /// Defines methods available on the model layer of the Pi Approximator application.
     /// </summary>
-    interface IModel
+    public interface IModel
     {
         //------------------------------------------------------------------------------
         //

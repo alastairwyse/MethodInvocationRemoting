@@ -1,0 +1,81 @@
+﻿<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProductVersion>8.0.50727</ProductVersion>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{8FDB1090-99C3-4C9D-A271-9882A1342C5C}</ProjectGuid>
+    <OutputType>Library</OutputType>
+    <AppDesignerFolder>Properties</AppDesignerFolder>
+    <RootNamespace>ApplicationMetricsUnitTests</RootNamespace>
+    <AssemblyName>ApplicationMetricsUnitTests</AssemblyName>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="NMock2, Version=2.1.3641.19651, Culture=neutral, PublicKeyToken=cf53a760d95f4c33, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Referenced Libraries\NMock2.dll</HintPath>
+    </Reference>
+    <Reference Include="nunit.framework, Version=2.5.10.11092, Culture=neutral, PublicKeyToken=96d09a1eb7f44a77, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\Referenced Libraries\nunit.framework.dll</HintPath>
+    </Reference>
+    <Reference Include="System" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="..\SolutionInfo.cs">
+      <Link>SolutionInfo.cs</Link>
+    </Compile>
+    <Compile Include="ConsoleMetricLoggerTests.cs" />
+    <Compile Include="FileMetricLoggerTests.cs" />
+    <Compile Include="InvalidNameMetrics.cs" />
+    <Compile Include="PerformanceCounterMetricLoggerTests.cs" />
+    <Compile Include="ExceptionStorer.cs" />
+    <Compile Include="MicrosoftAccessMetricLoggerTests.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TestAvailableMemoryMetric.cs" />
+    <Compile Include="TestDiskBytesReadMetric.cs" />
+    <Compile Include="TestDiskReadOperationMetric.cs" />
+    <Compile Include="TestDiskReadTimeMetric.cs" />
+    <Compile Include="TestFreeWorkerThreadsMetric.cs" />
+    <Compile Include="TestMessageBytesReceivedMetric.cs" />
+    <Compile Include="TestMessageProcessingTimeMetric.cs" />
+    <Compile Include="TestMessageReceivedMetric.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\ApplicationMetrics\ApplicationMetrics.csproj">
+      <Project>{CBEB0A28-6632-479A-A6DF-C20A41C050A4}</Project>
+      <Name>ApplicationMetrics</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\OperatingSystemAbstraction\OperatingSystemAbstraction.csproj">
+      <Project>{0AD197AE-27BD-4532-AFF9-DDC40EA02295}</Project>
+      <Name>OperatingSystemAbstraction</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildBinPath)\Microsoft.CSharp.targets" />
+  <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
+       Other similar extension points exist, see Microsoft.Common.targets.
+  <Target Name="BeforeBuild">
+  </Target>
+  <Target Name="AfterBuild">
+  </Target>
+  -->
+</Project>

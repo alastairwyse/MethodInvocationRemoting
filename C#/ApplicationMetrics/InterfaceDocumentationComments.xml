@@ -1,0 +1,118 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<doc>
+  <assembly>
+    <name>ApplicationMetrics</name>
+  </assembly>
+  <members>
+    <member name="T:ApplicationMetrics.IMetricLogger">
+      <summary>
+        Defines methods to record metric and instrumentation events for an application.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.Increment(ApplicationMetrics.CountMetric)">
+      <summary>
+        Records a single instance of the specified count event.
+      </summary>
+      <param name="countMetric">The count metric that occurred.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.Add(ApplicationMetrics.AmountMetric)">
+      <summary>
+        Records an instance of the specified amount metric event, and the associated amount.
+      </summary>
+      <param name="amountMetric">The amount metric that occurred.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.Set(ApplicationMetrics.StatusMetric)">
+      <summary>
+        Records an instance of the specified status metric event, and the associated value.
+      </summary>
+      <param name="statusMetric">The status metric that occurred.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.Begin(ApplicationMetrics.IntervalMetric)">
+      <summary>
+        Records the starting of the specified interval event.
+      </summary>
+      <param name="intervalMetric">The interval metric that started.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.End(ApplicationMetrics.IntervalMetric)">
+      <summary>
+        Records the completion of the specified interval event.
+      </summary>
+      <param name="intervalMetric">The interval metric that completed.</param>
+    </member>
+    <member name="T:ApplicationMetrics.IExceptionHandler">
+      <summary>
+        Defines a method to handle Exceptions.  When injected into an object, this allows exceptions thrown by worker threads in the object to be captured outside the object.  Useful for test frameworks like NMock2 which do not capture exceptions on worker threads.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IExceptionHandler.Handle(System.Exception)">
+      <summary>
+        Handles an exception.
+      </summary>
+      <param name="e">The exception to handle.</param>
+    </member>
+    <member name="T:ApplicationMetrics.IMetricAggregateLogger">
+      <summary>
+        Defines methods to register aggregates of metric events, allowing the values of these aggregates to be recorded and logged when the underlying metric events occur.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.CountMetric,ApplicationMetrics.TimeUnit,System.String,System.String)">
+      <summary>
+        Defines a metric aggregate which represents the number of occurrences of a count metric within the specified time unit.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the number of messages sent to a remote system each minute, or the number of disk reads per second.</remarks>
+      <param name="countMetric">The count metric recorded as part of the aggregate.</param>
+      <param name="timeUnit">The unit of time in which the number of occurrences of the count metric is recorded.</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.AmountMetric,ApplicationMetrics.CountMetric,System.String,System.String)">
+      <summary>
+        Defines a metric aggregate which represents the total amount of the specified amount metric per occurrence of the specified count metric.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the number of bytes per message sent to a remote system, or the number of bytes read per disk read.</remarks>
+      <param name="amountMetric">The amount metric recorded as part of the aggregate (effectively the numerator).</param>
+      <param name="countMetric">The count metric per which the total amount of the amount metric(s) are aggregated (effectively the denominator).</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.AmountMetric,ApplicationMetrics.TimeUnit,System.String,System.String)">
+      <summary>
+        Defines a metric aggregate which represents the total amount of the specified amount metric within the specified time unit.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the number of bytes sent to a remote system each minute, or the number of bytes read from disk per second.</remarks>
+      <param name="amountMetric">The amount metric recorded as part of the aggregate.</param>
+      <param name="timeUnit">The unit of time in which the amount associated with the specified amount metric is recorded.</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.AmountMetric,ApplicationMetrics.AmountMetric,System.String,System.String)">
+      <summary>
+        Defines a metric aggregate which represents the ratio of one amount metric to another.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the size of a compressed file against the size of the same file uncompressed, effectively recording the overall compression ratio.</remarks>
+      <param name="numeratorAmountMetric">The amount metric which is the numerator in the ratio.</param>
+      <param name="denominatorAmountMetric">The amount metric which is the denominator in the ratio.</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.IntervalMetric,ApplicationMetrics.CountMetric,System.String,System.String)">
+      <summary>
+        Defines a metric aggregate which represents the total time of the specified interval metric per occurrence of the specified count metric.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the average time to send a message to a remote system, or the average time to read perform a disk read.</remarks>
+      <param name="intervalMetric">The interval metric recorded as part of the aggregate (effectively the numerator).</param>
+      <param name="countMetric">The count metric per which the total time of the interval metric(s) are aggregated (effectively the denominator).</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.IntervalMetric,System.String,System.String)">
+      <summary>
+        Defines a metric which represents the total time of all occurrences of the specified interval metric as a fraction of the total runtime of the logger.
+      </summary>
+      <remarks>This metric aggregate could be used to represent the percentage of total runtime spent sending messages to a remote system.</remarks>
+      <param name="intervalMetric">The interval metric recorded as part of the aggregate.</param>
+      <param name="name">The name of the metric aggregate.</param>
+      <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+  </members>
+</doc>

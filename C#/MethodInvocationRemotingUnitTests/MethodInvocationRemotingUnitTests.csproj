@@ -38,6 +38,10 @@
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Referenced Libraries\Apache.NMS.ActiveMQ.dll</HintPath>
     </Reference>
+    <Reference Include="ApplicationMetrics, Version=1.2.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>..\ApplicationMetrics\bin\Debug\ApplicationMetrics.dll</HintPath>
+    </Reference>
     <Reference Include="NMock2, Version=2.1.3641.19651, Culture=neutral, PublicKeyToken=cf53a760d95f4c33, processorArchitecture=MSIL">
       <SpecificVersion>False</SpecificVersion>
       <HintPath>..\Referenced Libraries\NMock2.dll</HintPath>

@@ -28,7 +28,7 @@ namespace SampleApplication4
     /// <summary>
     /// Container class which holds data used to calculate an approximation of Pi
     /// </summary>
-    class PiScenarioContainer
+    public class PiScenarioContainer
     {
         private double[] scenarios;
         private decimal piApproximation;

@@ -28,7 +28,7 @@ namespace SampleApplication4
     /// <summary>
     /// Defines methods available on the main view of the Pi Approximator application.
     /// </summary>
-    interface IMainView
+    public interface IMainView
     {
         /// <summary>
         /// The presenter component associated with this view.

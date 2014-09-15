@@ -20,6 +20,8 @@ using System.Text;
 using System.IO;
 using System.IO.Compression;
 using ApplicationLogging;
+using ApplicationMetrics;
+using MethodInvocationRemotingMetrics;
 
 namespace MethodInvocationRemoting
 {
@@ -37,12 +39,13 @@ namespace MethodInvocationRemoting
         private Encoding stringEncoding = Encoding.UTF8;
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
+        private MetricsUtilities metricsUtilities;
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteSenderCompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteSenderCompressor class.
         /// </summary>
@@ -52,13 +55,14 @@ namespace MethodInvocationRemoting
             remoteSender = underlyingRemoteSender;
             logger = new ConsoleApplicationLogger(LogLevel.Information, '|', "  ");
             loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(new NullMetricLogger());
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: RemoteSenderCompressor (constructor)
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Initialises a new instance of the MethodInvocationRemoting.RemoteSenderCompressor class.
         /// </summary>
@@ -71,17 +75,52 @@ namespace MethodInvocationRemoting
             loggingUtilities = new LoggingUtilities(logger);
         }
 
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteSenderCompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteSenderCompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteSender">The remote sender to send the message to after compressing.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteSenderCompressor(IRemoteSender underlyingRemoteSender, IMetricLogger metricLogger)
+            : this(underlyingRemoteSender)
+        {
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: RemoteSenderCompressor (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the MethodInvocationRemoting.RemoteSenderCompressor class.
+        /// </summary>
+        /// <param name="underlyingRemoteSender">The remote sender to send the message to after compressing.</param>
+        /// <param name="logger">The logger to write log events to.</param>
+        /// <param name="metricLogger">The metric logger to write metric and instrumentation events to.</param>
+        public RemoteSenderCompressor(IRemoteSender underlyingRemoteSender, IApplicationLogger logger, IMetricLogger metricLogger)
+            : this(underlyingRemoteSender)
+        {
+            this.logger = logger;
+            loggingUtilities = new LoggingUtilities(logger);
+            metricsUtilities = new MetricsUtilities(metricLogger);
+        }
+
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:MethodInvocationRemoting.IRemoteSender.Send(System.String)"]/*'/>
         public void Send(string message)
         {
             remoteSender.Send(CompressString(message));
         }
 
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         //
         // Method: CompressString
         //
-        //******************************************************************************
+        //------------------------------------------------------------------------------
         /// <summary>
         /// Compresses a string.
         /// </summary>
@@ -89,6 +128,8 @@ namespace MethodInvocationRemoting
         /// <returns>The compressed string.</returns>
         private string CompressString(string inputString)
         {
+            metricsUtilities.Begin(new StringCompressTime());
+            
             // Note that no try/catch block is included in this method.  According to the .NET documentation, most methods here will only cause exceptions in cases like null parameters being passed (e.g. in the case if UTF8Encoding.GetBytes() and Convert.ToBase64String()), which would be very unlikely to occur if these classes are used in the intended context.
 
             byte[] inputStringBytes = stringEncoding.GetBytes(inputString);
@@ -107,6 +148,9 @@ namespace MethodInvocationRemoting
             // Convert the compressed bytes to a base 64 string
             string returnString = Convert.ToBase64String(compressedByteArray);
 
+            metricsUtilities.End(new StringCompressTime());
+            metricsUtilities.Increment(new StringCompressed());
+            metricsUtilities.Add(new CompressedStringSize(returnString.Length));
             loggingUtilities.LogCompressedString(this, returnString);
 
             return returnString;

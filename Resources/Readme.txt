@@ -1,0 +1,1 @@
+MetricLogger.mdb - Blank Microsoft Access database compatible with classes ApplicationMetrics.MicrosoftAccessMetricLogger (C#) and net.alastairwyse.applicationmetrics.MicrosoftAccessMetricLogger (Java), for use with SampleApplication5 project

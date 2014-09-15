@@ -28,7 +28,7 @@ namespace SampleApplication4
     /// <summary>
     /// Defines methods available on the presenter component of the Pi Approximator application.
     /// </summary>
-    interface IPresenter
+    public interface IPresenter
     {
         /// <summary>
         /// Indicates whether a process to exit the application has been initiated.
