@@ -204,10 +204,12 @@ namespace MethodInvocationRemoting
             GC.SuppressFinalize(this);
         }
         
+        #pragma warning disable 1591
         ~ActiveMqRemoteConnectionBase()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -38,8 +38,7 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
      * @param sender      Object to use to send serialized method invocations.
      * @param receiver    Object to use to send serialized method invocations.
      */
-    public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver)
-    {
+    public MethodInvocationRemoteSender(IMethodInvocationSerializer serializer, IRemoteSender sender, IRemoteReceiver receiver) {
         this.serializer = serializer;
         this.sender = sender;
         this.receiver = receiver;
@@ -93,20 +92,25 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         
         Object returnValue;
 
-        // Check that inputted method invocation does not have a void return type.
-        if (inputMethodInvocation.getReturnType() == null)
-        {
-            throw new IllegalArgumentException("Method invocation cannot have a void return type.");
+        try {
+            // Check that inputted method invocation does not have a void return type.
+            if (inputMethodInvocation.getReturnType() == null) {
+                throw new IllegalArgumentException("Method invocation cannot have a void return type.");
+            }
+    
+            String serializedReturnValue = SerializeAndSend(inputMethodInvocation);
+            try {
+                returnValue = serializer.DeserializeReturnValue(serializedReturnValue);
+            }
+            catch (Exception e) {
+                throw new DeserializationException("Failed to deserialize return value.", e);
+            }
         }
-
-        String serializedReturnValue = SerializeAndSend(inputMethodInvocation);
-        try
-        {
-            returnValue = serializer.DeserializeReturnValue(serializedReturnValue);
-        }
-        catch (Exception e)
-        {
-            throw new DeserializationException("Failed to deserialize return value.", e);
+        catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new RemoteMethodSendTime());
+            //[END_METRICS] */
+            throw e;
         }
         
         /* //[BEGIN_METRICS]
@@ -130,16 +134,22 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
         metricLogger.Begin(new RemoteMethodSendTime());
         //[END_METRICS] */
         
-        // Check that inputted method invocation has a void return type.
-        if (inputMethodInvocation.getReturnType() != null)
-        {
-            throw new IllegalArgumentException("Method invocation must have a void return type.");
+        try {
+            // Check that inputted method invocation has a void return type.
+            if (inputMethodInvocation.getReturnType() != null) {
+                throw new IllegalArgumentException("Method invocation must have a void return type.");
+            }
+    
+            String serializedReturnValue = SerializeAndSend(inputMethodInvocation);
+            if (serializedReturnValue.equals(serializer.getVoidReturnValue()) == false) {
+                throw new Exception("Invocation of void method returned non-void.");
+            }
         }
-
-        String serializedReturnValue = SerializeAndSend(inputMethodInvocation);
-        if (serializedReturnValue.equals(serializer.getVoidReturnValue()) == false)
-        {
-            throw new Exception("Invocation of void method returned non-void.");
+        catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new RemoteMethodSendTime());
+            //[END_METRICS] */
+            throw e;
         }
         
         /* //[BEGIN_METRICS]
@@ -163,14 +173,12 @@ public class MethodInvocationRemoteSender implements IMethodInvocationRemoteSend
      */
     private String SerializeAndSend(IMethodInvocation inputMethodInvocation) throws Exception
     {
-        try
-        {
+        try {
             String serializedMethodInvocation = serializer.Serialize(inputMethodInvocation);
             sender.Send(serializedMethodInvocation);
             return receiver.Receive();
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             throw new Exception("Failed to invoke method.", e);
         }
     }

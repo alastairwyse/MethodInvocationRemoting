@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -197,19 +197,27 @@ namespace MethodInvocationRemoting
         {
             metricsUtilities.Begin(new MessageSendTime());
 
-            CheckNotDisposed();
-            CheckConnectionOpen();
-
-            // Send a message
-            ITextMessage textMessage = session.CreateTextMessage(message);
-            textMessage.Properties.SetString(filterIdentifier, messageFilter);
             try
             {
-                producer.Send(textMessage);
+                CheckNotDisposed();
+                CheckConnectionOpen();
+
+                // Send a message
+                ITextMessage textMessage = session.CreateTextMessage(message);
+                textMessage.Properties.SetString(filterIdentifier, messageFilter);
+                try
+                {
+                    producer.Send(textMessage);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Error sending message.", e);
+                }
             }
             catch (Exception e)
             {
-                throw new Exception("Error sending message.", e);
+                metricsUtilities.CancelBegin(new MessageSendTime());
+                throw e;
             }
 
             metricsUtilities.End(new MessageSendTime());

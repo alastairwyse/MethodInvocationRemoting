@@ -44,9 +44,7 @@ namespace MethodInvocationRemoting
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
         private MetricsUtilities metricsUtilities;
-        /// <summary>
-        /// Indicates whether the object has been disposed.
-        /// </summary>
+        /// <summary>Indicates whether the object has been disposed.</summary>
         protected bool disposed;
 
         //------------------------------------------------------------------------------
@@ -181,8 +179,16 @@ namespace MethodInvocationRemoting
                         {
                             metricsUtilities.Begin(new MessageReceiveTime());
 
-                            returnMessage = messageFile.ReadAll();
-                            fileSystem.DeleteFile(messageFilePath);
+                            try
+                            {
+                                returnMessage = messageFile.ReadAll();
+                                fileSystem.DeleteFile(messageFilePath);
+                            }
+                            catch (Exception e)
+                            {
+                                metricsUtilities.CancelBegin(new MessageReceiveTime());
+                                throw e;
+                            }
 
                             metricsUtilities.End(new MessageReceiveTime());
                             metricsUtilities.Increment(new MessageReceived());
@@ -230,10 +236,12 @@ namespace MethodInvocationRemoting
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~FileRemoteReceiver()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.util.concurrent.*;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.assertNull;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.applicationmetrics.*;
 import net.alastairwyse.operatingsystemabstraction.*;
@@ -55,7 +56,7 @@ public class FileMetricLoggerTests {
         mockFileWriter = mock(IFileWriter.class);
         mockCalendarProvider = mock(ICalendarProvider.class);
         dequeueOperationLoopCompleteSignal = new CountDownLatch(1);
-        testFileMetricLogger = new FileMetricLogger('|', 10, false, exceptionStorer, mockCalendarProvider, dequeueOperationLoopCompleteSignal, mockFileWriter); 
+        testFileMetricLogger = new FileMetricLogger('|', new LoopingWorkerThreadBufferProcessor(10, exceptionStorer, dequeueOperationLoopCompleteSignal), false, mockCalendarProvider, mockFileWriter); 
     }
     
     @Test
@@ -85,6 +86,7 @@ public class FileMetricLoggerTests {
         verify(mockFileWriter, times(3)).write(System.lineSeparator());
         verify(mockFileWriter, times(3)).flush();
         verifyNoMoreInteractions(mockCalendarProvider, mockFileWriter);
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -114,6 +116,7 @@ public class FileMetricLoggerTests {
         verify(mockFileWriter, times(3)).write(System.lineSeparator());
         verify(mockFileWriter, times(3)).flush();
         verifyNoMoreInteractions(mockCalendarProvider, mockFileWriter);
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -143,6 +146,7 @@ public class FileMetricLoggerTests {
         verify(mockFileWriter, times(3)).write(System.lineSeparator());
         verify(mockFileWriter, times(3)).flush();
         verifyNoMoreInteractions(mockCalendarProvider, mockFileWriter);
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -185,6 +189,7 @@ public class FileMetricLoggerTests {
         verify(mockFileWriter, times(3)).write(System.lineSeparator());
         verify(mockFileWriter, times(3)).flush();
         verifyNoMoreInteractions(mockCalendarProvider, mockFileWriter);
+        assertNull(exceptionStorer.getException());
     }
     
     @Test

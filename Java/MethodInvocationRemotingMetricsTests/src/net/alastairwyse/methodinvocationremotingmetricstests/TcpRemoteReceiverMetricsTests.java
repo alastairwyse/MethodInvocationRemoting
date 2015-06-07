@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,6 +23,7 @@ import java.io.*;
 import java.nio.*;
 import java.util.*;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 
 import org.mockito.invocation.InvocationOnMock;
@@ -105,6 +106,64 @@ public class TcpRemoteReceiverMetricsTests {
     }
 
     @Test
+    public void ReceiveAsynchronousCloseExceptionMetricsTest() throws Exception {
+        // Tests that the CancelBegin() method is called when an AsynchronousCloseException is encountered during receiving
+        
+        ByteBuffer readBuffer = ByteBuffer.allocate(socketReadBufferSize);
+        
+        when(mockServerSocketChannel.isOpen()).thenReturn(false);
+        when(mockServerSocketChannel.accept())
+            .thenReturn(mockSocketChannel)
+            .thenReturn(null);
+        // For the first read(), return the first 10 bytes of the message...
+        when(mockSocketChannel.read(readBuffer))
+            .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, true), 10));
+        // ...and on the second read() throw an exception
+        when(mockSocketChannel.read(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, false)))
+            .thenThrow(new java.nio.channels.AsynchronousCloseException());
+
+        try {
+            testTcpRemoteReceiver.Connect();
+            testTcpRemoteReceiver.Receive();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageReceiveTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+
+    @Test
+    public void ReceiveUnhandledExceptionMetricsTest() throws Exception {
+        // Tests that the CancelBegin() method is called when an unhandled exception is encountered during receiving
+        
+        ByteBuffer readBuffer = ByteBuffer.allocate(socketReadBufferSize);
+        
+        when(mockServerSocketChannel.isOpen()).thenReturn(false);
+        when(mockServerSocketChannel.accept())
+            .thenReturn(mockSocketChannel)
+            .thenReturn(null);
+        // For the first read(), return the first 10 bytes of the message...
+        when(mockSocketChannel.read(readBuffer))
+            .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, true), 10));
+        // ...and on the second read() throw an exception
+        when(mockSocketChannel.read(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, false)))
+            .thenThrow(new java.nio.channels.NotYetConnectedException());
+
+        try {
+            testTcpRemoteReceiver.Connect();
+            testTcpRemoteReceiver.Receive();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageReceiveTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
     public void ReceiveReconnectMetricsTest() throws Exception {
         // Tests receiving a message, where a new pending connection is detected and accepted after reading up to after the message size header from the initial connection
         //   Ensures the correct order of metric logging in this case, especially that a corresponding End() is called for each Begin()\
@@ -135,6 +194,71 @@ public class TcpRemoteReceiverMetricsTests {
         verify(mockMetricLogger).Increment(isA(MessageReceived.class));
         verify(mockMetricLogger).Add((argThat(new IsAmountMetric(new ReceivedMessageSize(16)))));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test 
+    public void ReceiveReconnectExceptionMetricsTest() throws Exception {
+        // Tests that if an exception occurs when receiving, subsequent failure to reconnect will call method CancelBegin() when handling the exception
+        
+        ByteBuffer readBuffer = ByteBuffer.allocate(socketReadBufferSize);
+        
+        when(mockServerSocketChannel.isOpen()).thenReturn(false);
+        when(mockServerSocketChannel.accept())
+            .thenReturn(mockSocketChannel)
+            .thenReturn(null)
+            // This mock action simulates repeated IOExceptions when attempting to reconnect (will be called for as many times as specified by parameter 'connectRetryCount')
+            .thenThrow(new IOException("Mock IOException."));
+        // For the first read(), return the first 10 bytes of the message...
+        when(mockSocketChannel.read(readBuffer))
+            .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, true), 10));
+        // ...and on the second read() throw an exception
+        when(mockSocketChannel.read(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, false)))
+            .thenThrow(new IOException());
+        
+        try {
+            testTcpRemoteReceiver.Connect();
+            testTcpRemoteReceiver.Receive();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageReceiveTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
+    public void ReceiveReconnectRereceieveExceptionMetricsTest() throws Exception {
+        // Tests that if an exception occurs when receiving and causes a reconnect, a subsequent failure to receive will call method CancelBegin() when handling the exception
+        
+        when(mockServerSocketChannel.isOpen()).thenReturn(false);
+        when(mockServerSocketChannel.accept())
+            .thenReturn(mockSocketChannel)
+            .thenReturn(null)
+            .thenReturn(null)
+            // The below return simulates the new pending connection
+            .thenReturn(mockSocketChannel)
+            .thenReturn(null);
+
+        // Mock the 1st and 3rd calls to read(), first returning just 10 bytes of the message, and then throwing an unhandled exception (after reconnecting)
+        when(mockSocketChannel.read(getByteBufferSubSet(testMessageByteArray, 0, 0, socketReadBufferSize, false)))
+            .thenAnswer(new ReadMethodAnswer(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, true), 10))
+            .thenThrow(new java.nio.channels.AsynchronousCloseException());
+        // Mock the 2nd call the read(), causing a handled exception
+        when(mockSocketChannel.read(getByteBufferSubSet(testMessageByteArray, 0, 10, socketReadBufferSize, false)))
+            .thenThrow(new IOException("Mock IOException."));
+
+        try {
+            testTcpRemoteReceiver.Connect();
+            testTcpRemoteReceiver.Receive();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageReceiveTime.class));
+            verify(mockMetricLogger).Increment(isA(TcpRemoteReceiverReconnected.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
     
     @Test
@@ -177,7 +301,7 @@ public class TcpRemoteReceiverMetricsTests {
     }
     
     @Test
-    public void ReceiveExceptionMetricsTest() throws Exception {
+    public void ReceiveExceptionReconnectMetricsTest() throws Exception {
         // Tests receiving a message, where an IO exception occurs causing reconnect and re-receive
         //   Ensures the correct order of metric logging in this case, especially that a corresponding End() is called for each Begin()
         

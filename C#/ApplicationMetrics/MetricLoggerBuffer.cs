@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,6 +53,8 @@ namespace ApplicationMetrics
         /// <summary>Lock object which should be set before dequeuing from queue intervalMetricEventQueue.</summary>
         protected object intervalMetricEventQueueLock;
 
+        /// <summary>Object which implements a processing strategy for the buffers (queues).</summary>
+        protected IBufferProcessingStrategy bufferProcessingStrategy;
         /// <summary>Object which provides the current date and time.</summary>
         protected IDateTime dateTime;
         /// <summary>Object handles any exceptions.  Allows easier unit testing by pushing exceptions to the IExceptionHandler interface.</summary>
@@ -60,10 +62,6 @@ namespace ApplicationMetrics
 
         // Dictionary object to temporarily store the start instance of any received interval metrics
         private Dictionary<Type, IntervalMetricEventInstance> startIntervalMetricEventStore;
-        private Thread dequeueOperationThread;
-        private int dequeueOperationLoopInterval;
-        private volatile bool cancelRequest;
-        private bool testConstructor = false;
         private bool intervalMetricChecking;
 
         //------------------------------------------------------------------------------
@@ -74,21 +72,10 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricLoggerBuffer class.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        protected MetricLoggerBuffer(int dequeueOperationLoopInterval, bool intervalMetricChecking)
+        protected MetricLoggerBuffer(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
         {
-            if (dequeueOperationLoopInterval >= 0)
-            {
-                this.dequeueOperationLoopInterval = dequeueOperationLoopInterval;
-            }
-            else
-            {
-                throw new ArgumentOutOfRangeException("dequeueOperationLoopInterval", dequeueOperationLoopInterval, "Argument 'dequeueOperationLoopInterval' must be greater than or equal to 0.");
-            }
-
-            this.intervalMetricChecking = intervalMetricChecking;
-
             countMetricEventQueue = new Queue<CountMetricEventInstance>();
             amountMetricEventQueue = new Queue<AmountMetricEventInstance>();
             statusMetricEventQueue = new Queue<StatusMetricEventInstance>();
@@ -98,9 +85,13 @@ namespace ApplicationMetrics
             statusMetricEventQueueLock = new object();
             intervalMetricEventQueueLock = new object();
 
-            startIntervalMetricEventStore = new Dictionary<Type, IntervalMetricEventInstance>();
+            this.bufferProcessingStrategy = bufferProcessingStrategy;
+            this.bufferProcessingStrategy.BufferProcessed += delegate(object sender, EventArgs e) { DequeueAndProcessMetricEvents(); };
             dateTime = new OperatingSystemAbstraction.DateTime();
             exceptionHandler = new ExceptionThrower();
+
+            startIntervalMetricEventStore = new Dictionary<Type, IntervalMetricEventInstance>();
+            this.intervalMetricChecking = intervalMetricChecking;
         }
 
         //------------------------------------------------------------------------------
@@ -111,16 +102,15 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricLoggerBuffer class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        protected MetricLoggerBuffer(int dequeueOperationLoopInterval, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : this(dequeueOperationLoopInterval, intervalMetricChecking)
+        protected MetricLoggerBuffer(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : this(bufferProcessingStrategy, intervalMetricChecking)
         {
             this.dateTime = dateTime;
             this.exceptionHandler = exceptionHandler;
-            testConstructor = true;
         }
 
         //------------------------------------------------------------------------------
@@ -129,30 +119,12 @@ namespace ApplicationMetrics
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Starts a worker thread which calls methods to dequeue and process metric events, at an interval specified by constructor parameter 'dequeueOperationLoopInterval'.
+        /// Starts the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method starts the worker thread).
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public virtual void Start()
         {
-            cancelRequest = false;
-
-            dequeueOperationThread = new Thread(delegate()
-            {
-                while (cancelRequest == false)
-                {
-                    DequeueAndProcessMetricEvents();
-                    if (dequeueOperationLoopInterval > 0)
-                    {
-                        Thread.Sleep(dequeueOperationLoopInterval);
-                    }
-                    // If the code is being tested, allow only a single iteration of the loop
-                    if (testConstructor == true)
-                    {
-                        break;
-                    }
-                }
-            });
-            dequeueOperationThread.Name = "ApplicationMetrics.MetricLoggerBuffer metric event dequeue amd process worker thread.";
-            dequeueOperationThread.Start();
+            bufferProcessingStrategy.Start();
         }
 
         //------------------------------------------------------------------------------
@@ -161,15 +133,12 @@ namespace ApplicationMetrics
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Stops the thread which dequeues metric events from the internal buffers.
+        /// Stops the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method stops the worker thread).
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public virtual void Stop()
         {
-            cancelRequest = true;
-            if (dequeueOperationThread != null)
-            {
-                dequeueOperationThread.Join();
-            }
+            bufferProcessingStrategy.Stop();
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricLogger.Increment(ApplicationMetrics.CountMetric)"]/*'/>
@@ -178,6 +147,7 @@ namespace ApplicationMetrics
             lock (countMetricEventQueueLock)
             {
                 countMetricEventQueue.Enqueue(new CountMetricEventInstance(countMetric, dateTime.UtcNow));
+                bufferProcessingStrategy.NotifyCountMetricEventBuffered();
             }
         }
 
@@ -187,6 +157,7 @@ namespace ApplicationMetrics
             lock (amountMetricEventQueueLock)
             {
                 amountMetricEventQueue.Enqueue(new AmountMetricEventInstance(amountMetric, dateTime.UtcNow));
+                bufferProcessingStrategy.NotifyAmountMetricEventBuffered();
             }
         }
 
@@ -196,6 +167,7 @@ namespace ApplicationMetrics
             lock (statusMetricEventQueueLock)
             {
                 statusMetricEventQueue.Enqueue(new StatusMetricEventInstance(statusMetric, dateTime.UtcNow));
+                bufferProcessingStrategy.NotifyStatusMetricEventBuffered();
             }
         }
 
@@ -214,8 +186,19 @@ namespace ApplicationMetrics
             lock (intervalMetricEventQueueLock)
             {
                 intervalMetricEventQueue.Enqueue(new IntervalMetricEventInstance(intervalMetric, IntervalMetricEventTimePoint.End, dateTime.UtcNow));
+                bufferProcessingStrategy.NotifyIntervalMetricEventBuffered();
             }
         }
+
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricLogger.CancelBegin(ApplicationMetrics.IntervalMetric)"]/*'/>
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            lock (intervalMetricEventQueueLock)
+            {
+                intervalMetricEventQueue.Enqueue(new IntervalMetricEventInstance(intervalMetric, IntervalMetricEventTimePoint.Cancel, dateTime.UtcNow));
+            }
+        }
+
 
         #region Abstract Methods
 
@@ -305,6 +288,7 @@ namespace ApplicationMetrics
             {
                 tempQueue = new Queue<CountMetricEventInstance>(countMetricEventQueue);
                 countMetricEventQueue.Clear();
+                bufferProcessingStrategy.NotifyCountMetricEventBufferCleared();
             }
 
             // Process all items in the temporary queue
@@ -332,6 +316,7 @@ namespace ApplicationMetrics
             {
                 tempQueue = new Queue<AmountMetricEventInstance>(amountMetricEventQueue);
                 amountMetricEventQueue.Clear();
+                bufferProcessingStrategy.NotifyAmountMetricEventBufferCleared();
             }
 
             // Process all items in the temporary queue
@@ -358,6 +343,7 @@ namespace ApplicationMetrics
             {
                 tempQueue = new Queue<StatusMetricEventInstance>(statusMetricEventQueue);
                 statusMetricEventQueue.Clear();
+                bufferProcessingStrategy.NotifyStatusMetricEventBufferCleared();
             }
 
             // Process all items in the temporary queue
@@ -384,6 +370,7 @@ namespace ApplicationMetrics
             {
                 tempQueue = new Queue<IntervalMetricEventInstance>(intervalMetricEventQueue);
                 intervalMetricEventQueue.Clear();
+                bufferProcessingStrategy.NotifyIntervalMetricEventBufferCleared();
             }
 
             // Process all items in the temporary queue
@@ -391,57 +378,76 @@ namespace ApplicationMetrics
             {
                 IntervalMetricEventInstance currentIntervalMetricEvent = tempQueue.Dequeue();
 
-                // If the current interval metric represents the start of the interval, put it in the dictionary object 
-                if (currentIntervalMetricEvent.TimePoint == IntervalMetricEventTimePoint.Start)
+                switch (currentIntervalMetricEvent.TimePoint)
                 {
-                    if (startIntervalMetricEventStore.ContainsKey(currentIntervalMetricEvent.MetricType) == true)
-                    {
-                        // If a start interval event of this type was already received and checking is enabled, throw an exception
-                        if (intervalMetricChecking == true)
+                    // If the current interval metric represents the start of the interval, put it in the dictionary object 
+                    case IntervalMetricEventTimePoint.Start:
+                        if (startIntervalMetricEventStore.ContainsKey(currentIntervalMetricEvent.MetricType) == true)
                         {
-                            exceptionHandler.Handle(new Exception("Received duplicate begin '" + currentIntervalMetricEvent.Metric.Name + "' metrics."));
+                            // If a start interval event of this type was already received and checking is enabled, throw an exception
+                            if (intervalMetricChecking == true)
+                            {
+                                exceptionHandler.Handle(new InvalidOperationException("Received duplicate begin '" + currentIntervalMetricEvent.Metric.Name + "' metrics."));
+                            }
+                            // If checking is not enabled, replace the currently stored begin interval event with the new one
+                            else
+                            {
+                                startIntervalMetricEventStore.Remove(currentIntervalMetricEvent.MetricType);
+                                startIntervalMetricEventStore.Add(currentIntervalMetricEvent.MetricType, currentIntervalMetricEvent);
+                            }
                         }
-                        // If checking is not enabled, replace the currently stored begin interval event with the new one
                         else
                         {
-                            startIntervalMetricEventStore.Remove(currentIntervalMetricEvent.MetricType);
                             startIntervalMetricEventStore.Add(currentIntervalMetricEvent.MetricType, currentIntervalMetricEvent);
                         }
-                    }
-                    else
-                    {
-                        startIntervalMetricEventStore.Add(currentIntervalMetricEvent.MetricType, currentIntervalMetricEvent);
-                    }
-                }
-                // If the current interval metric represents the end of the interval, call the method to process it
-                else
-                {
-                    if (startIntervalMetricEventStore.ContainsKey(currentIntervalMetricEvent.MetricType) == true)
-                    {
-                        TimeSpan intervalDuration = currentIntervalMetricEvent.EventTime.Subtract(startIntervalMetricEventStore[currentIntervalMetricEvent.MetricType].EventTime);
-                        double intervalDurationMillisecondsDouble = intervalDuration.TotalMilliseconds;
-                        // If the duration is less then 0 set back to 0, as the start time could be after the end time in the case the metric event occurred across a system time update
-                        if (intervalDurationMillisecondsDouble < 0)
-                        {
-                            intervalDurationMillisecondsDouble = 0;
-                        }
-                        // Convert double to long
-                        //   There should not be a risk of overflow here, as the number of milliseconds between DateTime.MinValue and DateTime.MaxValue is 315537897600000, which is a valid long value
-                        long intervalDurationMillisecondsLong = Convert.ToInt64(intervalDurationMillisecondsDouble);
+                        break;
 
-                        ProcessIntervalMetricEvent(startIntervalMetricEventStore[currentIntervalMetricEvent.MetricType], intervalDurationMillisecondsLong);
-
-                        startIntervalMetricEventStore.Remove(currentIntervalMetricEvent.MetricType);
-                    }
-                    else
-                    {
-                        // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
-                        if (intervalMetricChecking == true)
+                    // If the current interval metric represents the end of the interval, call the method to process it
+                    case IntervalMetricEventTimePoint.End:
+                        if (startIntervalMetricEventStore.ContainsKey(currentIntervalMetricEvent.MetricType) == true)
                         {
-                            exceptionHandler.Handle(new Exception("Received end '" + currentIntervalMetricEvent.Metric.Name + "' with no corresponding start interval metric."));
+                            TimeSpan intervalDuration = currentIntervalMetricEvent.EventTime.Subtract(startIntervalMetricEventStore[currentIntervalMetricEvent.MetricType].EventTime);
+                            double intervalDurationMillisecondsDouble = intervalDuration.TotalMilliseconds;
+                            // If the duration is less then 0 set back to 0, as the start time could be after the end time in the case the metric event occurred across a system time update
+                            if (intervalDurationMillisecondsDouble < 0)
+                            {
+                                intervalDurationMillisecondsDouble = 0;
+                            }
+                            // Convert double to long
+                            //   There should not be a risk of overflow here, as the number of milliseconds between DateTime.MinValue and DateTime.MaxValue is 315537897600000, which is a valid long value
+                            long intervalDurationMillisecondsLong = Convert.ToInt64(intervalDurationMillisecondsDouble);
+
+                            ProcessIntervalMetricEvent(startIntervalMetricEventStore[currentIntervalMetricEvent.MetricType], intervalDurationMillisecondsLong);
+
+                            startIntervalMetricEventStore.Remove(currentIntervalMetricEvent.MetricType);
                         }
-                        // If checking is not enabled discard the interval event
-                    }
+                        else
+                        {
+                            // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
+                            if (intervalMetricChecking == true)
+                            {
+                                exceptionHandler.Handle(new InvalidOperationException("Received end '" + currentIntervalMetricEvent.Metric.Name + "' with no corresponding start interval metric."));
+                            }
+                            // If checking is not enabled discard the interval event
+                        }
+                        break;
+
+                    // If the current interval metric represents the cancelling of the interval, remove it from the dictionary object 
+                    case IntervalMetricEventTimePoint.Cancel:
+                        if (startIntervalMetricEventStore.ContainsKey(currentIntervalMetricEvent.MetricType) == true)
+                        {
+                            startIntervalMetricEventStore.Remove(currentIntervalMetricEvent.MetricType);
+                        }
+                        else
+                        {
+                            // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
+                            if (intervalMetricChecking == true)
+                            {
+                                exceptionHandler.Handle(new InvalidOperationException("Received cancel '" + currentIntervalMetricEvent.Metric.Name + "' with no corresponding start interval metric."));
+                            }
+                            // If checking is not enabled discard the interval event
+                        }
+                        break;
                 }
             }
         }

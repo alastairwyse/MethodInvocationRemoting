@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -45,8 +45,10 @@ namespace SampleApplication5
             ConsoleMetricLogger consoleMetricLogger = new ConsoleMetricLogger(5000, true);
 
             using (FileApplicationLogger logger = new FileApplicationLogger(LogLevel.Information, '|', "  ", @"C:\Temp\C#Sender.log"))
-            using (FileMetricLogger fileMetricLogger = new FileMetricLogger('|', @"C:\Temp\C#Metrics.log", 5000, true))
-            using (MicrosoftAccessMetricLogger accessMetricLogger = new MicrosoftAccessMetricLogger(@"C:\Temp\MetricLogger.mdb", "SampleApplication5-C#", 5000, true))
+            using (SizeLimitedBufferProcessor fileMetricLoggerBufferProcessor = new SizeLimitedBufferProcessor(50))
+            using (FileMetricLogger fileMetricLogger = new FileMetricLogger('|', @"C:\Temp\C#Metrics.log", fileMetricLoggerBufferProcessor, true))
+            using (SizeLimitedBufferProcessor accessMetricLoggerBufferProcessor = new SizeLimitedBufferProcessor(50))
+            using (MicrosoftAccessMetricLogger accessMetricLogger = new MicrosoftAccessMetricLogger(@"C:\Temp\MetricLogger.mdb", "SampleApplication5-C#", accessMetricLoggerBufferProcessor, true))
             using (PerformanceCounterMetricLogger perfmonMetricLogger = new PerformanceCounterMetricLogger("SampleApplication5Metrics", "Metrics produced by MethodInvocationRemoting sample application 5", 1000, true))
             using (TcpRemoteSender tcpSender = new TcpRemoteSender(System.Net.IPAddress.Loopback, 55000, 10, 1000, 30000, 25, logger, distributor))
             using (TcpRemoteReceiver tcpReceiver = new TcpRemoteReceiver(55001, 10, 1000, 25, logger, distributor))
@@ -87,9 +89,9 @@ namespace SampleApplication5
                 distributor.AddLogger(accessMetricLogger);
                 distributor.AddLogger(perfmonMetricLogger);
                 consoleMetricLogger.Start();
-                fileMetricLogger.Start();
+                fileMetricLoggerBufferProcessor.Start();
+                accessMetricLoggerBufferProcessor.Start();
                 accessMetricLogger.Connect();
-                accessMetricLogger.Start();
                 perfmonMetricLogger.Start();
 
                 // Connect to the MethodInvocationRemoteReceiver
@@ -111,8 +113,8 @@ namespace SampleApplication5
 
                 // Stop the metric loggers
                 consoleMetricLogger.Stop();
-                fileMetricLogger.Stop();
-                accessMetricLogger.Stop();
+                fileMetricLoggerBufferProcessor.Stop();
+                accessMetricLoggerBufferProcessor.Stop();
                 accessMetricLogger.Disconnect();
                 perfmonMetricLogger.Stop();
             }

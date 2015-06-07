@@ -59,8 +59,7 @@ public class SerializerOperationMap implements ISerializerOperationMap {
         CheckAddUpdateParameters(nativeType, serializedType, serializer);
 
         // Check that the mapping already exists
-        if (nativeToSerializedMap.containsKey(nativeType) == false)
-        {
+        if (nativeToSerializedMap.containsKey(nativeType) == false) {
             throw new IllegalArgumentException("The native type '" + nativeType.getName() + "' does not exist in the map.");
         }
 
@@ -74,48 +73,40 @@ public class SerializerOperationMap implements ISerializerOperationMap {
     
     @Override
     public String GetSerializedType(Class<?> nativeType) {
-        if (nativeToSerializedMap.containsKey(nativeType) == true)
-        {
+        if (nativeToSerializedMap.containsKey(nativeType) == true) {
             return nativeToSerializedMap.get(nativeType).serializedType;
         }
-        else
-        {
+        else {
             return null;
         }
     }
     
     @Override
     public Class<?> GetNativeType(String serializedType) {
-        if (serializedToNativeMap.containsKey(serializedType) == true)
-        {
+        if (serializedToNativeMap.containsKey(serializedType) == true) {
             return serializedToNativeMap.get(serializedType).nativeType;
         }
-        else
-        {
+        else {
             return null;
         }
     }
 
     @Override
     public IObjectSerializer<?> GetSerializer(Class<?> nativeType) {
-        if (nativeToSerializedMap.containsKey(nativeType) == true)
-        {
+        if (nativeToSerializedMap.containsKey(nativeType) == true) {
             return nativeToSerializedMap.get(nativeType).objectSerializer;
         }
-        else
-        {
+        else {
             return null;
         }
     }
 
     @Override
     public IObjectSerializer<?> GetSerializer(String serializedType) {
-        if (serializedToNativeMap.containsKey(serializedType) == true)
-        {
+        if (serializedToNativeMap.containsKey(serializedType) == true) {
             return serializedToNativeMap.get(serializedType).objectSerializer;
         }
-        else
-        {
+        else {
             return null;
         }
     }
@@ -128,16 +119,13 @@ public class SerializerOperationMap implements ISerializerOperationMap {
      * @throws IllegalArgumentException
      */
     private void CheckAddUpdateParameters(Class<?> nativeType, String serializedType, IObjectSerializer<?> serializer) {
-        if (nativeType == null)
-        {
+        if (nativeType == null) {
             throw new IllegalArgumentException("Parameter 'nativeType' cannot be null.");
         }
-        if (serializedType == null)
-        {
+        if (serializedType == null) {
             throw new IllegalArgumentException("Parameter 'serializedType' cannot be null.");
         }
-        if (serializer == null)
-        {
+        if (serializer == null) {
             throw new IllegalArgumentException("Parameter 'serializer' cannot be null.");
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,10 @@ package net.alastairwyse.methodinvocationremotingmetricstests;
 
 import org.junit.Before;
 import org.junit.Test;
+
 import javax.jms.*;
+
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.applicationlogging.*;
 import net.alastairwyse.applicationmetrics.*;
@@ -67,5 +70,24 @@ public class ActiveMqRemoteSenderMetricsTests {
         verify(mockMetricLogger).End(isA(MessageSendTime.class));
         verify(mockMetricLogger).Increment(isA(MessageSent.class));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test
+    public void SendExceptionMetricsTest() throws Exception {
+        final String testMessage = "<TestMessage>Test message content</TestMessage>";
+        TextMessage mockTextMessage = mock(TextMessage.class);
+        
+        when(mockSession.createTextMessage(testMessage)).thenReturn(mockTextMessage);
+        doThrow(new JMSException("Mock Send Failure")).when(mockProducer).send(mockTextMessage);
+        try {
+            testActiveMqRemoteSender.Connect();
+            testActiveMqRemoteSender.Send(testMessage);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
 }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -42,11 +42,27 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.ConsoleMetricLogger class.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the console.</param>
+        /// <remarks>This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility.</remarks>
+        /// <param name="dequeueOperationLoopInterval">The time to wait (in milliseconds) between iterations of the worker thread which dequeues metric events and writes them to the console.</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         public ConsoleMetricLogger(int dequeueOperationLoopInterval, bool intervalMetricChecking)
         {
-            loggerImplementation = new ConsoleMetricLoggerImplementation(dequeueOperationLoopInterval, intervalMetricChecking);
+            loggerImplementation = new ConsoleMetricLoggerImplementation(new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, false), intervalMetricChecking);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: ConsoleMetricLogger (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the ApplicationMetrics.ConsoleMetricLogger class.
+        /// </summary>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
+        /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
+        public ConsoleMetricLogger(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+        {
+            loggerImplementation = new ConsoleMetricLoggerImplementation(bufferProcessingStrategy, intervalMetricChecking);
         }
 
         //------------------------------------------------------------------------------
@@ -57,14 +73,14 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.ConsoleMetricLogger class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the console.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="console">A test (mock) console object.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public ConsoleMetricLogger(int dequeueOperationLoopInterval, bool intervalMetricChecking, IConsole console, IDateTime dateTime, IExceptionHandler exceptionHandler)
+        public ConsoleMetricLogger(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IConsole console, IDateTime dateTime, IExceptionHandler exceptionHandler)
         {
-            loggerImplementation = new ConsoleMetricLoggerImplementation(dequeueOperationLoopInterval, intervalMetricChecking, console, dateTime, exceptionHandler);
+            loggerImplementation = new ConsoleMetricLoggerImplementation(bufferProcessingStrategy, intervalMetricChecking, console, dateTime, exceptionHandler);
         }
 
         //------------------------------------------------------------------------------
@@ -75,6 +91,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Starts a worker thread which calls methods to dequeue metric events and write them to the console.
         /// </summary>
+        /// <remarks>Although this method has been deprecated in base classes, in the case of ConsoleMetricLogger this Start() method should be called (rather than the Start() on the IBufferProcessingStrategy implementation) as it performs additional initialization specific to ConsoleMetricLogger.</remarks>
         public void Start()
         {
             loggerImplementation.Start();
@@ -88,6 +105,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Stops the worker thread.
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public void Stop()
         {
             loggerImplementation.Stop();
@@ -121,6 +139,12 @@ namespace ApplicationMetrics
         public void End(IntervalMetric intervalMetric)
         {
             loggerImplementation.End(intervalMetric);
+        }
+
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricLogger.CancelBegin(ApplicationMetrics.IntervalMetric)"]/*'/>
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            loggerImplementation.CancelBegin(intervalMetric);
         }
 
         /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricAggregateLogger.DefineMetricAggregate(ApplicationMetrics.CountMetric,ApplicationMetrics.TimeUnit,System.String,System.String)"]/*'/>

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package net.alastairwyse.methodinvocationremotingmetricstests;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.applicationmetrics.*;
 import net.alastairwyse.methodinvocationremoting.*;
@@ -65,6 +66,49 @@ public class MethodInvocationRemoteSenderMetricsTests {
     }
     
     @Test
+    public void InvokeMethodVoidMethodInvocationExceptionMetricsTest() throws Exception {
+        try {
+            testMethodInvocationRemoteSender.InvokeMethod(new MethodInvocation("TestMethod"));
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
+    public void InvokeMethodSerializationExceptionMetricsTest() throws Exception {
+        doThrow(new SerializationException("Mock Serialization Failure")).when(mockMethodInvocationSerializer).Serialize(testMethodInvocation);
+        try {
+            testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
+    public void InvokeMethodReturnValueDeserializationExceptionMetricsTest() throws Exception {
+        when(mockMethodInvocationSerializer.Serialize(testMethodInvocation)).thenReturn(testSerializedMethodInvocation);
+        when(mockRemoteReceiver.Receive()).thenReturn(testSerializedReturnValue);
+        doThrow(new DeserializationException("Mock Deerialization Failure")).when(mockMethodInvocationSerializer).DeserializeReturnValue(testSerializedReturnValue);
+        try {
+            testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
     public void InvokeVoidMethodMetricsTest() throws Exception {
         testMethodInvocation = new MethodInvocation("TestMethod");
         
@@ -78,5 +122,53 @@ public class MethodInvocationRemoteSenderMetricsTests {
         verify(mockMetricLogger).End(isA(RemoteMethodSendTime.class));
         verify(mockMetricLogger).Increment(isA(RemoteMethodSent.class));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test
+    public void InvokeVoidMethodNonVoidMethodInvocationExceptionMetricsTest() throws Exception {
+        try {
+            testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
+    public void InvokeVoidMethodSerializationExceptionMetricsTest() throws Exception {
+        testMethodInvocation = new MethodInvocation("TestMethod");
+        
+        doThrow(new SerializationException("Mock Serialization Failure")).when(mockMethodInvocationSerializer).Serialize(testMethodInvocation);
+        try {
+            testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
+    public void InvokeVoidMethodNonVoidReturnValueExceptionMetricsTest() throws Exception {
+        testMethodInvocation = new MethodInvocation("TestMethod");
+        
+        when(mockMethodInvocationSerializer.Serialize(testMethodInvocation)).thenReturn(testSerializedMethodInvocation);
+        when(mockRemoteReceiver.Receive()).thenReturn(testVoidSerializedReturnValue);
+        when(mockMethodInvocationSerializer.getVoidReturnValue()).thenReturn(testSerializedReturnValue);
+        
+        try {
+            testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).Begin(isA(RemoteMethodSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
 }

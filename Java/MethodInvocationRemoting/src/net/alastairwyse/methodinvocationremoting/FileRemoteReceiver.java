@@ -45,12 +45,10 @@ public class FileRemoteReceiver implements IRemoteReceiver {
      * @param readLoopTimeout  The time to wait between attempts to read the file in milliseconds.
      */
     public FileRemoteReceiver(String messageFilePath, String lockFilePath, int readLoopTimeout) {
-        if (messageFile == null)
-        {
+        if (messageFile == null) {
             messageFile = new File(messageFilePath);
         }
-        if (fileSystem == null)
-        {
+        if (fileSystem == null) {
             fileSystem = new FileSystem();
         }
         this.messageFilePath = messageFilePath;
@@ -135,8 +133,16 @@ public class FileRemoteReceiver implements IRemoteReceiver {
                         metricLogger.Begin(new MessageReceiveTime());
                         //[END_METRICS] */
                         
-                        returnMessage = messageFile.ReadAll();
-                        fileSystem.DeleteFile(messageFilePath);
+                        try {
+                            returnMessage = messageFile.ReadAll();
+                            fileSystem.DeleteFile(messageFilePath);
+                        }
+                        catch (Exception e) {
+                            /* //[BEGIN_METRICS]
+                            metricLogger.CancelBegin(new MessageReceiveTime());
+                            //[END_METRICS] */
+                            throw e;
+                        }
                         
                         /* //[BEGIN_METRICS]
                         metricLogger.End(new MessageReceiveTime());

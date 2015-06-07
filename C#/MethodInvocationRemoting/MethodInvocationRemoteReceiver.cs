@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -141,8 +141,19 @@ namespace MethodInvocationRemoting
                         {
                             metricsUtilities.Begin(new RemoteMethodReceiveTime());
 
-                            IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
-                            MethodInvocationReceived(this, new MethodInvocationReceivedEventArgs(receivedMethodInvocation));
+                            IMethodInvocation receivedMethodInvocation;
+
+                            try
+                            {
+                                receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
+                                OnMethodInvocationReceived(new MethodInvocationReceivedEventArgs(receivedMethodInvocation));
+                            }
+                            catch (Exception e)
+                            {
+                                metricsUtilities.CancelBegin(new RemoteMethodReceiveTime());
+                                throw e;
+                            }
+
                             loggingUtilities.Log(this, LogLevel.Information, "Received method invocation '" + receivedMethodInvocation.Name + "'.");
                         }
                     }
@@ -169,6 +180,7 @@ namespace MethodInvocationRemoting
             }
             catch (Exception e)
             {
+                metricsUtilities.CancelBegin(new RemoteMethodReceiveTime());
                 throw new Exception("Failed to send return value.", e);
             }
         }
@@ -185,6 +197,7 @@ namespace MethodInvocationRemoting
             }
             catch (Exception e)
             {
+                metricsUtilities.CancelBegin(new RemoteMethodReceiveTime());
                 throw new Exception("Failed to send void return value.", e);
             }
         }
@@ -197,6 +210,18 @@ namespace MethodInvocationRemoting
             receiveLoopThread.Join();
 
             loggingUtilities.Log(this, LogLevel.Information, "Receive operation cancelled.");
+        }
+
+        /// <summary>
+        /// Raises the MethodInvocationReceived event.
+        /// </summary>
+        /// <param name="e">A MethodInvocationReceivedEventArgs that contains the event data.</param>
+        protected virtual void OnMethodInvocationReceived(MethodInvocationReceivedEventArgs e)
+        {
+            if (MethodInvocationReceived != null)
+            {
+                MethodInvocationReceived(this, e);
+            }
         }
     }
 }

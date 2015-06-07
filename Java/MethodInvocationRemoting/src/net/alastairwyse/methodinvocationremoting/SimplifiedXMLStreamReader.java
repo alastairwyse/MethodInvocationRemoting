@@ -48,8 +48,8 @@ public class SimplifiedXMLStreamReader {
     /**
      * Returns the text content of the node, if the current node in the XML document is a text node.
      * <b>Note</b> that the property "javax.xml.stream.isCoalescing" must be set to true on the XMLInputFactory that creates the XMLStreamReader which is adapted by this class, for this method to return correctly. 
-     * @return                     The text content of the current node.
-     * @throws XMLStreamException
+     * @return                      The text content of the current node.
+     * @throws  XMLStreamException  if the node does not contain character content.
      */
     public String getText() throws XMLStreamException {
         String returnValue;
@@ -65,7 +65,7 @@ public class SimplifiedXMLStreamReader {
     /**
      * Checks that the current content node is an element with the given name and advances the reader to the next node.
      * @param name                 The qualified name of the element. 
-     * @throws XMLStreamException
+     * @throws XMLStreamException  if the current node is not a start element, or does not match the specified name.
      */
     public void ReadStartElement(String name) throws XMLStreamException {
         underlyingStreamReader.next();
@@ -80,7 +80,7 @@ public class SimplifiedXMLStreamReader {
     
     /**
      * Checks that the current content node is an end tag and advances the reader to the next node.
-     * @throws XMLStreamException
+     * @throws  XMLStreamException  if the current node is not an end tag.
      */
     public void ReadEndElement() throws XMLStreamException {
         underlyingStreamReader.next();
@@ -92,8 +92,9 @@ public class SimplifiedXMLStreamReader {
     
     /**
      * Checks that the name property of the element found matches the given string before reading a text-only element.
-     * @return  The text contained in the element that was read. An empty string if the element is empty (<item></item> or <item/>).
-     * @throws XMLStreamException
+     * @param   name                the name to check for.
+     * @return                      The text contained in the element that was read. An empty string if the element is empty (&lt;item&gt;&lt;/item&gt; or &lt;item/&gt;).
+     * @throws  XMLStreamException  if the closing tag was not an end element (e.g. another element is nested inside the specified element).
      */
     public String ReadElementString(String name) throws XMLStreamException {
         String returnString;
@@ -116,8 +117,8 @@ public class SimplifiedXMLStreamReader {
     
     /**
      * Reads the contents of an element as a string. 
-     * @return                     The contents of the element.
-     * @throws XMLStreamException
+     * @return                      The contents of the element.
+     * @throws  XMLStreamException  if the node does not contain character/string content.
      */
     public String ReadString() throws XMLStreamException {
         String returnString;
@@ -134,9 +135,9 @@ public class SimplifiedXMLStreamReader {
     
     /**
      * Reads the next node and returns true if the node is a start element and the name of the element matches the parameter.  Returns false if the node is an end element.
-     * @param name                 The qualified name of the element. 
-     * @return                     Indicates whether the next node is a start element (true) or an end element (false).
-     * @throws XMLStreamException
+     * @param   name                The qualified name of the element. 
+     * @return                      Indicates whether the next node is a start element (true) or an end element (false).
+     * @throws  XMLStreamException  if the name of the element did not match the parameter, or the next node was neither a start nor an end element.
      */
     public Boolean IsNextNodeStartElement(String name) throws XMLStreamException {
         Boolean returnValue;
@@ -167,7 +168,7 @@ public class SimplifiedXMLStreamReader {
      * @param name                             The qualified name of the element. 
      * @param alternateNodeTypeStreamConstant  The type of alternate node that will return false if encountered.  Note that this should be an enumeration of javax.xml.stream.XMLStreamConstants.
      * @return                                 Indicates whether the next node is a start element (true) or the alternate element type (false).
-     * @throws XMLStreamException
+     * @throws XMLStreamException              if the next node is neither a start element nor of the specified alternate node type.
      */
     public Boolean IsNextNodeStartElement(String name, int alternateNodeTypeStreamConstant) throws XMLStreamException {
         Boolean returnValue;

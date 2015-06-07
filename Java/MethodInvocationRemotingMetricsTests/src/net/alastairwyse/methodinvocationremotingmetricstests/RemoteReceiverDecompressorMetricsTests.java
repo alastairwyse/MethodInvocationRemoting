@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,8 @@ package net.alastairwyse.methodinvocationremotingmetricstests;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
+import static org.mockito.Matchers.isA;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.applicationmetrics.*;
 import net.alastairwyse.methodinvocationremoting.*;
@@ -55,5 +57,20 @@ public class RemoteReceiverDecompressorMetricsTests {
         verify(mockMetricLogger, times(2)).End(isA(StringDecompressTime.class));
         verify(mockMetricLogger, times(2)).Increment(isA(StringDecompressed.class));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test
+    public void ReceiveExceptionMetricsTest() throws Exception {
+        when(mockUnderlyingRemoteReceiver.Receive()).thenReturn("InvalidCompressedString");
+        
+        try {
+            testRemoteReceiverDecompressor.Receive();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(StringDecompressTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(StringDecompressTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
 }

@@ -94,8 +94,7 @@ public class MethodInvocation implements IMethodInvocation {
      * @param name  Throws an exception if the inputted method name contains no non-whitespace characters.
      */
     private void CheckName(String name) {
-        if (name.trim().isEmpty() == true)
-        {
+        if (name.trim().isEmpty() == true) {
             throw new IllegalArgumentException("The method name cannot be blank.");
         }
     }

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -28,7 +28,9 @@ namespace ApplicationMetrics
         /// <summary>The start of the interval metric event.</summary>
         Start, 
         /// <summary>The completion of the interval metric event.</summary>
-        End
+        End,
+        /// <summary>The cancellation of a previously started interval metric event.</summary>
+        Cancel
     }
 
     //******************************************************************************

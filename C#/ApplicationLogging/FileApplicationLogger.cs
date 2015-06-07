@@ -31,7 +31,8 @@ namespace ApplicationLogging
     /// </summary>
     public class FileApplicationLogger : ApplicationLoggerBase, IApplicationLogger, IDisposable
     {
-        protected bool disposed;
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private IStreamWriter streamWriter;
         private Encoding fileEncoding = Encoding.UTF8;
 
@@ -199,10 +200,12 @@ namespace ApplicationLogging
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~FileApplicationLogger()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -67,6 +67,7 @@ namespace MethodInvocationRemoting
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
         private MetricsUtilities metricsUtilities;
+        /// <summary>Indicates whether the object has been disposed.</summary>
         protected bool disposed;
         /// <summary>The string encoding to expect when receiving a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -536,36 +537,44 @@ namespace MethodInvocationRemoting
              *   NotSupportedException
              *   ObjectDisposedException
              */
-
-            if (readException is System.IO.IOException)
-            {
-                logger.Log(this, LogLevel.Error, "IOException occurred whilst attempting to receive and acknowledge message.", readException);
-            }
-            else if ( (readException is System.Net.Sockets.SocketException) ||
-                      (readException is ObjectDisposedException) ||
-                      (readException is InvalidOperationException) ||
-                      (readException is NotSupportedException) )
-            {
-                logger.Log(this, LogLevel.Error, readException.GetType().Name + " occurred whilst attempting to receive and acknowledge message.", readException);
-            }
-            else
-            {
-                throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
-            }
-
-            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
-
             Queue<byte> messageBytes = new Queue<byte>();
-            AttemptConnect();
-            metricsUtilities.Increment(new TcpRemoteReceiverReconnected());
-            parseState = MessageParseState.StartOfMessage;
+
             try
             {
-                messageBytes = SetupAndReadMessage(ref parseState, ref messageSequenceNumber);
+                if (readException is System.IO.IOException)
+                {
+                    logger.Log(this, LogLevel.Error, "IOException occurred whilst attempting to receive and acknowledge message.", readException);
+                }
+                else if ((readException is System.Net.Sockets.SocketException) ||
+                          (readException is ObjectDisposedException) ||
+                          (readException is InvalidOperationException) ||
+                          (readException is NotSupportedException))
+                {
+                    logger.Log(this, LogLevel.Error, readException.GetType().Name + " occurred whilst attempting to receive and acknowledge message.", readException);
+                }
+                else
+                {
+                    throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
+                }
+
+                logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
+
+                AttemptConnect();
+                metricsUtilities.Increment(new TcpRemoteReceiverReconnected());
+                parseState = MessageParseState.StartOfMessage;
+                try
+                {
+                    messageBytes = SetupAndReadMessage(ref parseState, ref messageSequenceNumber);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Error receiving message.  Failed to read message after reconnecting.", e);
+                }
             }
             catch (Exception e)
             {
-                throw new Exception("Error receiving message.  Failed to read message after reconnecting.", e);
+                metricsUtilities.CancelBegin(new MessageReceiveTime());
+                throw e;
             }
 
             return messageBytes;
@@ -718,10 +727,12 @@ namespace MethodInvocationRemoting
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~TcpRemoteReceiver()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

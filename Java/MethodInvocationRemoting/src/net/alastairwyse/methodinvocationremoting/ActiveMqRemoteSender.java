@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -149,6 +149,9 @@ public class ActiveMqRemoteSender extends ActiveMqRemoteConnectionBase implement
             producer.send(textMessage);
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MessageSendTime());
+            //[END_METRICS] */
             throw new Exception("Error sending message.", e);
         }
         

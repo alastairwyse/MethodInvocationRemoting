@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -56,7 +58,7 @@ namespace ApplicationMetricsUnitTests
             mockDateTime = mocks.NewMock<IDateTime>();
             exceptionStorer = new ExceptionStorer();
             workerThreadLoopCompleteSignal = new AutoResetEvent(false);
-            testFileMetricLogger = new FileMetricLogger('|', 10, true, mockStreamWriter, mockDateTime, exceptionStorer);
+            testFileMetricLogger = new FileMetricLogger('|', new LoopingWorkerThreadBufferProcessor(10, true), true, mockStreamWriter, mockDateTime, exceptionStorer);
         }
 
         [Test]
@@ -87,6 +89,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -117,6 +120,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -147,6 +151,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -187,6 +192,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -200,6 +206,7 @@ namespace ApplicationMetricsUnitTests
             testFileMetricLogger.Close();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -213,6 +220,7 @@ namespace ApplicationMetricsUnitTests
             testFileMetricLogger.Dispose();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
     }
 }

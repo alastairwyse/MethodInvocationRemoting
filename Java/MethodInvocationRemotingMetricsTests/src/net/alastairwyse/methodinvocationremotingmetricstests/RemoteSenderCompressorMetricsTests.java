@@ -53,4 +53,7 @@ public class RemoteSenderCompressorMetricsTests {
         verify(mockMetricLogger).Add((argThat(new IsAmountMetric(new CompressedStringSize(28)))));
         verifyNoMoreInteractions(mockMetricLogger);
     }
+    
+    // Note - there should also be a test SendExceptionMetricsTest() in this class, to verify a call to the CancelBegin() method.
+    //        However, I could not see a way to force the class to throw an exception in order to test.
 }

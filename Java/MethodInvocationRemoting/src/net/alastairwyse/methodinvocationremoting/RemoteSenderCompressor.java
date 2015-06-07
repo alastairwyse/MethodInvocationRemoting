@@ -107,6 +107,9 @@ public class RemoteSenderCompressor implements IRemoteSender {
             compressedByteArray = compressedStringStream.toByteArray();
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new StringCompressTime());
+            //[END_METRICS] */
             throw new Exception ("Error compressing message.", e);
         }
         

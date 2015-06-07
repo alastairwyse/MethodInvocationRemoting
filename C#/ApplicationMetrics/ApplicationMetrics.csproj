@@ -50,12 +50,14 @@
     <Compile Include="ExceptionThrower.cs" />
     <Compile Include="FileMetricLogger.cs" />
     <Compile Include="FileMetricLoggerImplementation.cs" />
+    <Compile Include="IBufferProcessingStrategy.cs" />
     <Compile Include="IExceptionHandler.cs" />
     <Compile Include="IMetricAggregateLogger.cs" />
     <Compile Include="IMetricLogger.cs" />
     <Compile Include="IntervalMetric.cs" />
     <Compile Include="IntervalMetricEventInstance.cs" />
     <Compile Include="IntervalMetricTotalContainer.cs" />
+    <Compile Include="LoopingWorkerThreadBufferProcessor.cs" />
     <Compile Include="MetricAggregateContainer.cs" />
     <Compile Include="MetricAggregateContainerBase.cs" />
     <Compile Include="MetricAggregateLogger.cs" />
@@ -69,10 +71,12 @@
     <Compile Include="PerformanceCounterMetricLogger.cs" />
     <Compile Include="PerformanceCounterMetricLoggerImplementation.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SizeLimitedBufferProcessor.cs" />
     <Compile Include="StatusMetric.cs" />
     <Compile Include="StatusMetricEventInstance.cs" />
     <Compile Include="StatusMetricValueContainer.cs" />
     <Compile Include="TimeUnit.cs" />
+    <Compile Include="WorkerThreadBufferProcessorBase.cs" />
   </ItemGroup>
   <ItemGroup>
     <Content Include="InterfaceDocumentationComments.xml" />

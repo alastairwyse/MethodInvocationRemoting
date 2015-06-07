@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -31,7 +31,8 @@ namespace ApplicationMetrics
     /// </summary>
     public class FileMetricLogger : IMetricLogger, IDisposable
     {
-        protected bool disposed;
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private FileMetricLoggerImplementation loggerImplementation;
 
         //------------------------------------------------------------------------------
@@ -42,13 +43,34 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.FileMetricLogger class.
         /// </summary>
+        /// <remarks>This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility.</remarks>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
         /// <param name="filePath">The full path of the file to write the metric events to.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="dequeueOperationLoopInterval">The time to wait (in milliseconds) between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         public FileMetricLogger(char separatorCharacter, string filePath, int dequeueOperationLoopInterval, bool intervalMetricChecking)
         {
-            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, dequeueOperationLoopInterval, intervalMetricChecking);
+            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, false), intervalMetricChecking);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileMetricLogger (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the ApplicationMetrics.FileMetricLogger class.
+        /// </summary>
+        /// <remarks>This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility.</remarks>
+        /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
+        /// <param name="filePath">The full path of the file to write the metric events to.</param>
+        /// <param name="dequeueOperationLoopInterval">The time to wait (in milliseconds) between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
+        /// <param name="appendToFile">Whether to append to an existing file (if it exists) or overwrite.  A value of true causes appending.</param>
+        /// <param name="fileEncoding">The character encoding to use in the file.</param>
+        public FileMetricLogger(char separatorCharacter, string filePath, int dequeueOperationLoopInterval, bool intervalMetricChecking, bool appendToFile, Encoding fileEncoding)
+        {
+            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, false), intervalMetricChecking, appendToFile, fileEncoding);
         }
 
         //------------------------------------------------------------------------------
@@ -61,13 +83,30 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
         /// <param name="filePath">The full path of the file to write the metric events to.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
+        /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
+        public FileMetricLogger(char separatorCharacter, string filePath, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+        {
+            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, bufferProcessingStrategy, intervalMetricChecking);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: FileMetricLogger (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the ApplicationMetrics.FileMetricLogger class.
+        /// </summary>
+        /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
+        /// <param name="filePath">The full path of the file to write the metric events to.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="appendToFile">Whether to append to an existing file (if it exists) or overwrite.  A value of true causes appending.</param>
         /// <param name="fileEncoding">The character encoding to use in the file.</param>
-        public FileMetricLogger(char separatorCharacter, string filePath, int dequeueOperationLoopInterval, bool intervalMetricChecking, bool appendToFile, Encoding fileEncoding)
+        public FileMetricLogger(char separatorCharacter, string filePath, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, bool appendToFile, Encoding fileEncoding)
         {
-            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, dequeueOperationLoopInterval, intervalMetricChecking, appendToFile, fileEncoding);
+            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, filePath, bufferProcessingStrategy, intervalMetricChecking, appendToFile, fileEncoding);
         }
 
         //------------------------------------------------------------------------------
@@ -79,14 +118,14 @@ namespace ApplicationMetrics
         /// Initialises a new instance of the ApplicationMetrics.FileMetricLogger class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="streamWriter">A test (mock) stream writer.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public FileMetricLogger(char separatorCharacter, int dequeueOperationLoopInterval, bool intervalMetricChecking, IStreamWriter streamWriter, IDateTime dateTime, IExceptionHandler exceptionHandler)
+        public FileMetricLogger(char separatorCharacter, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IStreamWriter streamWriter, IDateTime dateTime, IExceptionHandler exceptionHandler)
         {
-            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, dequeueOperationLoopInterval, intervalMetricChecking, streamWriter, dateTime, exceptionHandler);
+            loggerImplementation = new FileMetricLoggerImplementation(separatorCharacter, bufferProcessingStrategy, intervalMetricChecking, streamWriter, dateTime, exceptionHandler);
         }
 
         //------------------------------------------------------------------------------
@@ -97,6 +136,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Starts a worker thread which calls methods to dequeue metric events and write them to the file.
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public void Start()
         {
             loggerImplementation.Start();
@@ -110,6 +150,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Stops the worker thread.
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public void Stop()
         {
             loggerImplementation.Stop();
@@ -158,6 +199,12 @@ namespace ApplicationMetrics
             loggerImplementation.End(intervalMetric);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricLogger.CancelBegin(ApplicationMetrics.IntervalMetric)"]/*'/>
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            loggerImplementation.CancelBegin(intervalMetric);
+        }
+
         #region Finalize / Dispose Methods
 
         /// <summary>
@@ -169,10 +216,12 @@ namespace ApplicationMetrics
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~FileMetricLogger()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

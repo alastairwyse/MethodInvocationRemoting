@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -126,6 +126,7 @@ namespace MethodInvocationRemoting
             }
             catch (Exception e)
             {
+                metricsUtilities.CancelBegin(new MethodInvocationSerializeTime());
                 throw new SerializationException("Failed to serialize method invocation '" + inputMethodInvocation.Name + "'.", inputMethodInvocation, e);
             }
 
@@ -150,6 +151,7 @@ namespace MethodInvocationRemoting
             }
             catch (Exception e)
             {
+                metricsUtilities.CancelBegin(new MethodInvocationDeserializeTime());
                 throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
             }
 
@@ -165,7 +167,17 @@ namespace MethodInvocationRemoting
         {
             metricsUtilities.Begin(new ReturnValueSerializeTime());
 
-            string returnString = SerializeObject(inputReturnValue);
+            string returnString;
+
+            try
+            {
+                returnString = SerializeObject(inputReturnValue);
+            }
+            catch (Exception e)
+            {
+                metricsUtilities.CancelBegin(new ReturnValueSerializeTime());
+                throw e;
+            }
 
             metricsUtilities.End(new ReturnValueSerializeTime());
             metricsUtilities.Increment(new ReturnValueSerialized());
@@ -180,7 +192,17 @@ namespace MethodInvocationRemoting
         {
             metricsUtilities.Begin(new ReturnValueDeserializeTime());
 
-            object returnObject = DeserializeObject(serializedReturnValue);
+            object returnObject;
+
+            try
+            {
+                returnObject = DeserializeObject(serializedReturnValue);
+            }
+            catch (Exception e)
+            {
+                metricsUtilities.CancelBegin(new ReturnValueDeserializeTime());
+                throw e;
+            }
 
             metricsUtilities.End(new ReturnValueDeserializeTime());
             metricsUtilities.Increment(new ReturnValueDeserialized());

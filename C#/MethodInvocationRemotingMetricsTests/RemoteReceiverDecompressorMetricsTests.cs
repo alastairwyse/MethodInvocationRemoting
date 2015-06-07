@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -72,6 +74,22 @@ namespace MethodInvocationRemotingMetricsTests
             testRemoteReceiverDecompressor.Receive();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void ReceiveExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockUnderlyingRemoteReceiver).Method("Receive").Will(Return.Value("InvalidCompressedString"));
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new StringDecompressTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new StringDecompressTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testRemoteReceiverDecompressor.Receive();
+            });
         }
     }
 }

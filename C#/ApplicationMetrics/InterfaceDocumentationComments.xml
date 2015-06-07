@@ -39,6 +39,12 @@
       </summary>
       <param name="intervalMetric">The interval metric that completed.</param>
     </member>
+    <member name="M:ApplicationMetrics.IMetricLogger.CancelBegin(ApplicationMetrics.IntervalMetric)">
+      <summary>
+        Cancels the starting of the specified interval event (e.g. in the case that an exception occurs between the starting and completion of the interval event).
+      </summary>
+      <param name="intervalMetric">The interval metric that should be cancelled.</param>
+    </member>
     <member name="T:ApplicationMetrics.IExceptionHandler">
       <summary>
         Defines a method to handle Exceptions.  When injected into an object, this allows exceptions thrown by worker threads in the object to be captured outside the object.  Useful for test frameworks like NMock2 which do not capture exceptions on worker threads.
@@ -113,6 +119,73 @@
       <param name="intervalMetric">The interval metric recorded as part of the aggregate.</param>
       <param name="name">The name of the metric aggregate.</param>
       <param name="description">A description of the metric aggregate, explaining what it measures and/or represents.</param>
+    </member>
+    <member name="T:ApplicationMetrics.IBufferProcessingStrategy">
+      <summary>
+        Defines methods which interact with a strategy to process buffered metric events in a MetricLoggerBuffer class.  MetricLoggerBuffer classes utilizing the strategy should call the releavant 'Notify' methods as necessary, and subscribe to event 'BufferProcessed' to be notified of when to process the contents of their buffers.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.Start">
+      <summary>
+        Starts the buffer processing (e.g. if the implementation of the strategy uses a worker thread, this method starts the worker thread).
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.Stop">
+      <summary>
+        Processes any metric events remaining in the buffers, and stops the buffer processing (e.g. if the implementation of the strategy uses a worker thread, this method stops the worker thread).
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.Stop(System.Boolean)">
+      <summary>
+        Stops the buffer processing (e.g. if the implementation of the strategy uses a worker thread, this method stops the worker thread).
+      </summary>
+      <remarks>There may be cases where the client code does not want to process any remaining metric events, e.g. in the case that the method was called as part of an exception handling routine.  This overload of the Stop() method allows the client code to specify this behaviour.</remarks>
+      <param name="processRemainingBufferedMetricEvents">Whether any metric events remaining in the buffers should be processed.</param>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyCountMetricEventBuffered">
+      <summary>
+        Notifies the buffer processing strategy that a count metric event was added to the buffer.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyAmountMetricEventBuffered">
+      <summary>
+        Notifies the buffer processing strategy that an amount metric event was added to the buffer.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyStatusMetricEventBuffered">
+      <summary>
+        Notifies the buffer processing strategy that a status metric event was added to the buffer.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyIntervalMetricEventBuffered">
+      <summary>
+        Notifies the buffer processing strategy that an interval metric event was added to the buffer.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyCountMetricEventBufferCleared">
+      <summary>
+        Notifies the buffer processing strategy that the buffer holding count metric events was cleared.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyAmountMetricEventBufferCleared">
+      <summary>
+        Notifies the buffer processing strategy that the buffer holding amount metric events was cleared.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyStatusMetricEventBufferCleared">
+      <summary>
+        Notifies the buffer processing strategy that the buffer holding status metric events was cleared.
+      </summary>
+    </member>
+    <member name="M:ApplicationMetrics.IBufferProcessingStrategy.NotifyIntervalMetricEventBufferCleared">
+      <summary>
+        Notifies the buffer processing strategy that the buffer holding interval metric events was cleared.
+      </summary>
+    </member>
+    <member name="E:ApplicationMetrics.IBufferProcessingStrategy.BufferProcessed">
+      <summary>
+        Occurs when the metric events stored in the buffer are removed from the buffer and processed.
+      </summary>
     </member>
   </members>
 </doc>

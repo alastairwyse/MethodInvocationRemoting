@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -466,7 +466,7 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
         // Parse the bytes in parameter initialReceivedBytes
         if (initialReceivedBytes != null) {
             ParseMessageData(initialReceivedBytes.array(), 0, initialReceivedBytes.position(), messageSequenceNumberBytes, messageSizeHeaderBytes, parseMessageDataParameters);
-            
+
             // If the initial buffer is full, create a new one
             if (initialReceivedBytes.hasRemaining() == false) {
                 tempBuffer = ByteBuffer.allocate(socketReadBufferSize);
@@ -626,32 +626,41 @@ public class TcpRemoteReceiver implements IRemoteReceiver, AutoCloseable {
          *   ClosedByInterruptException
          *   IOException
          */
-        
-        if ((readException instanceof java.nio.channels.AsynchronousCloseException) || (readException instanceof java.nio.channels.ClosedByInterruptException)) {
-            throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
-        }
-        else if (readException instanceof IOException) {
-            logger.Log(this, LogLevel.Error, readException.getClass().getSimpleName() + " occurred whilst attempting to receive and acknowledge message.", readException);
-        }
-        else {
-            throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
-        }
-        
-        logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
-
         ByteBuffer messageBytes = null; 
-        AttemptConnect();
-        /* //[BEGIN_METRICS]
-        metricLogger.Increment(new TcpRemoteReceiverReconnected());
-        //[END_METRICS] */
-        methodParameters.parseState = MessageParseState.StartOfMessage;
+        
         try {
-            messageBytes = SetupAndReadMessage(null, methodParameters);
+            // This 'if' block is required, even though the action contained in it is the same as for the 'else' block, due to AsynchronousCloseException and ClosedByInterruptException deriving from IOException
+            if ((readException instanceof java.nio.channels.AsynchronousCloseException) || (readException instanceof java.nio.channels.ClosedByInterruptException)) {
+                throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
+            }
+            else if (readException instanceof IOException) {
+                logger.Log(this, LogLevel.Error, readException.getClass().getSimpleName() + " occurred whilst attempting to receive and acknowledge message.", readException);
+            }
+            else {
+                throw new Exception("Error receiving message.  Unhandled exception while attempting to receive and acknowledge message.", readException);
+            }
+            
+            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to and re-receive.");
+    
+            AttemptConnect();
+            /* //[BEGIN_METRICS]
+            metricLogger.Increment(new TcpRemoteReceiverReconnected());
+            //[END_METRICS] */
+            methodParameters.parseState = MessageParseState.StartOfMessage;
+            try {
+                messageBytes = SetupAndReadMessage(null, methodParameters);
+            }
+            catch (Exception e) {
+                throw new Exception("Error receiving message.  Failed to read message after reconnecting.", e);
+            }
         }
         catch (Exception e) {
-            throw new Exception("Error receiving message.  Failed to read message after reconnecting.", e);
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MessageReceiveTime());
+            //[END_METRICS] */
+            throw e;
         }
-
+        
         return messageBytes;
     }
 

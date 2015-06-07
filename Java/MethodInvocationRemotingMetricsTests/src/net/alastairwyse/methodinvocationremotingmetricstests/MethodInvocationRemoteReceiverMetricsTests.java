@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,6 +19,7 @@ package net.alastairwyse.methodinvocationremotingmetricstests;
 import org.junit.Before;
 import org.junit.Test;
 
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.applicationmetrics.*;
 import net.alastairwyse.methodinvocationremoting.*;
@@ -85,6 +86,23 @@ public class MethodInvocationRemoteReceiverMetricsTests {
     }
     
     @Test
+    public void SendReturnValueExceptionMetricsTest() throws Exception {
+        String testReturnValue = "TestReturnValue";
+        String testSerializedReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnValue><DataType>string</DataType><string>TestReturnValue</string></ReturnValue>";
+
+        when(mockMethodInvocationSerializer.SerializeReturnValue(testReturnValue)).thenReturn(testSerializedReturnValue);
+        doThrow(new Exception("Mock Send Failure")).when(mockRemoteSender).Send(testSerializedReturnValue);
+        try {
+            testMethodInvocationRemoteReceiver.SendReturnValue(testReturnValue);
+            fail("Exception was not thrown.");
+        }
+        catch(Exception e) {
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
+    }
+    
+    @Test
     public void SendVoidReturnValueMetricsTest() throws Exception {
         when(mockMethodInvocationSerializer.getVoidReturnValue()).thenReturn(testVoidReturnValue);
         
@@ -93,5 +111,21 @@ public class MethodInvocationRemoteReceiverMetricsTests {
         verify(mockMetricLogger).End(isA(RemoteMethodReceiveTime.class));
         verify(mockMetricLogger).Increment(isA(RemoteMethodReceived.class));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test
+    public void SendVoidReturnValueExceptionMetricsTest() throws Exception {
+        String testVoidReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnType>void</ReturnType>";
+        
+        doReturn(testVoidReturnValue).when(mockMethodInvocationSerializer).getVoidReturnValue();
+        doThrow(new Exception("Mock Send Failure")).when(mockRemoteSender).Send(testVoidReturnValue);
+        try {
+            testMethodInvocationRemoteReceiver.SendVoidReturn();
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).CancelBegin(isA(RemoteMethodReceiveTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
 }

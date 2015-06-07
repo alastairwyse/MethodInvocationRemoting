@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,8 +32,27 @@ namespace ApplicationMetrics
     /// </summary>
     public class MicrosoftAccessMetricLogger : IMetricLogger, IDisposable
     {
-        protected bool disposed;
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private MicrosoftAccessMetricLoggerImplementation loggerImplementation;
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: MicrosoftAccessMetricLogger (constructor)
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Initialises a new instance of the ApplicationMetrics.MicrosoftAccessMetricLogger class.
+        /// </summary>
+        /// <remarks>This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility.</remarks>
+        /// <param name="databaseFilePath">The full path to the Microsoft Access data file.</param>
+        /// <param name="metricCategoryName">The name of the category which the metric events should be logged under in the database.</param>
+        /// <param name="dequeueOperationLoopInterval">The time to wait (in milliseconds) between iterations of the worker thread which dequeues metric events and writes them to the Access database.</param>
+        /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
+        public MicrosoftAccessMetricLogger(string databaseFilePath, string metricCategoryName, int dequeueOperationLoopInterval, bool intervalMetricChecking)
+        {
+            loggerImplementation = new MicrosoftAccessMetricLoggerImplementation(databaseFilePath, metricCategoryName, new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, false), intervalMetricChecking);
+        }
 
         //------------------------------------------------------------------------------
         //
@@ -45,11 +64,11 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="databaseFilePath">The full path to the Microsoft Access data file.</param>
         /// <param name="metricCategoryName">The name of the category which the metric events should be logged under in the database.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        public MicrosoftAccessMetricLogger(string databaseFilePath, string metricCategoryName, int dequeueOperationLoopInterval, bool intervalMetricChecking)
+        public MicrosoftAccessMetricLogger(string databaseFilePath, string metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
         {
-            loggerImplementation = new MicrosoftAccessMetricLoggerImplementation(databaseFilePath, metricCategoryName, dequeueOperationLoopInterval, intervalMetricChecking);
+            loggerImplementation = new MicrosoftAccessMetricLoggerImplementation(databaseFilePath, metricCategoryName, bufferProcessingStrategy, intervalMetricChecking);
         }
 
         //------------------------------------------------------------------------------
@@ -62,15 +81,15 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="databaseFilePath">The full path to the Microsoft Access data file.</param>
         /// <param name="metricCategoryName">The name of the category which the metric events should be logged under in the database.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="dbConnection">A test (mock) database connection object.</param>
         /// <param name="dbCommand">A test (mock) database command object.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public MicrosoftAccessMetricLogger(string databaseFilePath, string metricCategoryName, int dequeueOperationLoopInterval, bool intervalMetricChecking, IOleDbConnection dbConnection, IOleDbCommand dbCommand, IDateTime dateTime, IExceptionHandler exceptionHandler)
+        public MicrosoftAccessMetricLogger(string databaseFilePath, string metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IOleDbConnection dbConnection, IOleDbCommand dbCommand, IDateTime dateTime, IExceptionHandler exceptionHandler)
         {
-            loggerImplementation = new MicrosoftAccessMetricLoggerImplementation(databaseFilePath, metricCategoryName, dequeueOperationLoopInterval, intervalMetricChecking, dbConnection, dbCommand, dateTime, exceptionHandler);
+            loggerImplementation = new MicrosoftAccessMetricLoggerImplementation(databaseFilePath, metricCategoryName, bufferProcessingStrategy, intervalMetricChecking, dbConnection, dbCommand, dateTime, exceptionHandler);
         }
 
         //------------------------------------------------------------------------------
@@ -107,6 +126,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Starts a worker thread which calls methods to dequeue metric events and write them to the database.
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public void Start()
         {
             loggerImplementation.Start();
@@ -120,6 +140,7 @@ namespace ApplicationMetrics
         /// <summary>
         /// Stops the worker thread.
         /// </summary>
+        /// <remarks>This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.</remarks>
         public void Stop()
         {
             loggerImplementation.Stop();
@@ -155,6 +176,12 @@ namespace ApplicationMetrics
             loggerImplementation.End(intervalMetric);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationMetrics.IMetricLogger.CancelBegin(ApplicationMetrics.IntervalMetric)"]/*'/>
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            loggerImplementation.CancelBegin(intervalMetric);
+        }
+
         #region Finalize / Dispose Methods
 
         /// <summary>
@@ -166,10 +193,12 @@ namespace ApplicationMetrics
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~MicrosoftAccessMetricLogger()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

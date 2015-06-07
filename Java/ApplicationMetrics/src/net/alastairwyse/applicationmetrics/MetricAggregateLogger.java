@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,7 +16,6 @@
 
 package net.alastairwyse.applicationmetrics;
 
-import java.lang.Thread.*;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -48,31 +47,29 @@ abstract class MetricAggregateLogger extends MetricLoggerStorer implements IMetr
 
     /**
      * Initialises a new instance of the MetricAggregateLogger class.
-     * @param dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues and processes metric events, and logs metric events and aggregates.
-     * @param intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
      */
-    protected MetricAggregateLogger(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler);
+    protected MetricAggregateLogger(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking) {
+        super(bufferProcessingStrategy, intervalMetricChecking);
         InitialisePrivateMembers();
     }
     
     /**
      * Initialises a new instance of the MetricAggregateLogger class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
-     * @param dequeueOperationLoopInterval        The time to wait in between iterations of the worker thread which dequeues and processes metric events, and logs metric events and aggregates.
-     * @param intervalMetricChecking              Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler                    Handler for any uncaught exceptions occurring on the worker thread.
-     * @param calendarProvider                    A test (mock) ICalendarProvider object.
-     * @param dequeueOperationLoopCompleteSignal  Notifies test code that an iteration of the worker thread which dequeues and processes metric events has completed.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  calendarProvider          A test (mock) ICalendarProvider object.
      */
-    protected MetricAggregateLogger(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler, ICalendarProvider calendarProvider, CountDownLatch dequeueOperationLoopCompleteSignal) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler, calendarProvider, dequeueOperationLoopCompleteSignal);
+    protected MetricAggregateLogger(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking, ICalendarProvider calendarProvider) {
+        super(bufferProcessingStrategy, intervalMetricChecking, calendarProvider);
         InitialisePrivateMembers();
     }
 
     /**
-     * Starts a worker thread which calls methods to dequeue metric events and total and store the values of them, at an interval specified by constructor parameter 'dequeueOperationLoopInterval'.
+     * Starts the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method starts the worker thread).
+     * Although Start() has been deprecated in base classes, this Start() method should be called (rather than the Start() on the IBufferProcessingStrategy implementation) as it performs additional initialization specific to this class.
      */
     public void Start() {
         startTime = calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId));

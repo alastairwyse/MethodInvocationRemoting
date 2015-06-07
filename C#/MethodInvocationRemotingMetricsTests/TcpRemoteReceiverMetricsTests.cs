@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -92,7 +94,28 @@ namespace MethodInvocationRemotingMetricsTests
 
             testTcpRemoteReceiver.Connect();
             testTcpRemoteReceiver.Receive();
+            mocks.VerifyAllExpectationsHaveBeenMet();
+        }
 
+        [Test]
+        public void ReceiveUnhandledExceptionMetricsTest()
+        {
+            // Tests that the CancelBegin() method is called when an unhandled exception is encountered during receiving
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                // Expects for Receive()
+                SetBeginMessageReceiveExpectations(testMessageByteArray.Length);
+                Expect.Once.On(mockNetworkStream).Method("Read").Will(Throw.Exception(new AccessViolationException("Mock AccessViolationException.")));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MessageReceiveTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testTcpRemoteReceiver.Connect();
+                testTcpRemoteReceiver.Receive();
+            });
             mocks.VerifyAllExpectationsHaveBeenMet();
         }
 
@@ -133,6 +156,72 @@ namespace MethodInvocationRemotingMetricsTests
 
             testTcpRemoteReceiver.Connect();
             string receivedMessage = testTcpRemoteReceiver.Receive();
+            mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+
+        [Test]
+        public void ReceiveReconnectExceptionMetricsTest()
+        {
+            // Tests that if an exception occurs when receiving, subsequent failure to reconnect will call method CancelBegin() when handling the exception
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(false));
+                Expect.Once.On(mockTcpClient).GetProperty("Available").Will(Return.Value(testMessageByteArray.Length));
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MessageReceiveTime()));
+                Expect.Once.On(mockTcpClient).Method("GetStream").WithNoArguments().Will(Return.Value(mockNetworkStream));
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(false));
+                Expect.Once.On(mockTcpClient).GetProperty("Available").Will(Throw.Exception(new System.IO.IOException("Mock IOException.")));
+                // Below expects simulate throwing an unhandled exception when attempting to reconnect
+                Expect.Once.On(mockTcpListener).GetProperty("Active").Will(Return.Value(true));
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(true));
+                Expect.Once.On(mockTcpClient).Method("Close").WithNoArguments();
+                Expect.Once.On(mockTcpClient).Method("Dispose").WithNoArguments();
+                Expect.Once.On(mockTcpListener).Method("AcceptTcpClient").Will(Throw.Exception(new AccessViolationException("Mock AccessViolationException.")));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MessageReceiveTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testTcpRemoteReceiver.Connect();
+                testTcpRemoteReceiver.Receive();
+            });
+            mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void ReceiveReconnectRereceieveExceptionMetricsTest()
+        {
+            // Tests that if an exception occurs when receiving and causes a reconnect, a subsequent failure to receive will call method CancelBegin() when handling the exception
+
+            byte[] shortMessageByteArray = new byte[1];
+            Array.Copy(testMessageByteArray, 0, shortMessageByteArray, 0, 1);
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(false));
+                Expect.Once.On(mockTcpClient).GetProperty("Available").Will(Return.Value(testMessageByteArray.Length));
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MessageReceiveTime()));
+                Expect.Once.On(mockTcpClient).Method("GetStream").WithNoArguments().Will(Return.Value(mockNetworkStream));
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(false));
+                Expect.Once.On(mockTcpClient).GetProperty("Available").Will(Throw.Exception(new System.IO.IOException("Mock IOException.")));
+                SetReconnectExpectations();
+                Expect.Once.On(mockMetricLogger).Method("Increment").With(IsMetric.Equal(new TcpRemoteReceiverReconnected()));
+                Expect.Once.On(mockTcpClient).Method("GetStream").WithNoArguments().Will(Return.Value(mockNetworkStream));
+                Expect.Once.On(mockTcpListener).Method("Pending").WithNoArguments().Will(Return.Value(false));
+                Expect.Once.On(mockTcpClient).GetProperty("Available").Will(Return.Value(testMessageByteArray.Length));
+                Expect.Once.On(mockNetworkStream).Method("Read").With(new byte[testMessageByteArray.Length], 0, testMessageByteArray.Length).Will(Throw.Exception(new AccessViolationException("Mock AccessViolationException.")));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MessageReceiveTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testTcpRemoteReceiver.Connect();
+                testTcpRemoteReceiver.Receive();
+            });
             mocks.VerifyAllExpectationsHaveBeenMet();
         }
 
@@ -191,7 +280,7 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
-        public void ReceiveExceptionMetricsTest()
+        public void ReceiveExceptionReconnectMetricsTest()
         {
             // Tests receiving a message, where an IO exception occurs causing reconnect and re-receive
             //   Ensures the correct order of metric logging in this case, especially that a corresponding End() is called for each Begin()
@@ -284,7 +373,6 @@ namespace MethodInvocationRemotingMetricsTests
 
             testTcpRemoteReceiver.Connect();
             testTcpRemoteReceiver.Receive();
-
             mocks.VerifyAllExpectationsHaveBeenMet();
         }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -107,8 +107,7 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
 
     @Override
     public void SendReturnValue(Object returnValue) throws Exception {
-        try
-        {
+        try {
             String serializedReturnValue = serializer.SerializeReturnValue(returnValue);
             sender.Send(serializedReturnValue);
             /* //[BEGIN_METRICS]
@@ -119,16 +118,17 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
             logger.Log(this, LogLevel.Information, "Sent return value.");
             //[END_LOGGING] */
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new RemoteMethodReceiveTime());
+            //[END_METRICS] */
             throw new Exception("Failed to send return value.", e);
         }
     }
 
     @Override
     public void SendVoidReturn() throws Exception {
-        try
-        {
+        try {
             sender.Send(serializer.getVoidReturnValue());
             /* //[BEGIN_METRICS]
             metricLogger.End(new RemoteMethodReceiveTime());
@@ -138,8 +138,10 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
             logger.Log(this, LogLevel.Information, "Sent void return value.");
             //[END_LOGGING] */
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new RemoteMethodReceiveTime());
+            //[END_METRICS] */
             throw new Exception("Failed to send void return value.", e);
         }
     }
@@ -175,13 +177,23 @@ public class MethodInvocationRemoteReceiver implements IMethodInvocationRemoteRe
             while (cancelRequest == false) {
                 try {
                     String serializedMethodInvocation = receiver.Receive();
-                    if (serializedMethodInvocation != "")
-                    {
+                    if (serializedMethodInvocation != "") {
                         /* //[BEGIN_METRICS]
                         metricLogger.Begin(new RemoteMethodReceiveTime());
                         //[END_METRICS] */
-                        IMethodInvocation receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
-                        receivedEventHandler.MethodInvocationReceived(outerClass, receivedMethodInvocation);
+                        
+                        IMethodInvocation receivedMethodInvocation;
+                        
+                        try {
+                            receivedMethodInvocation = serializer.Deserialize(serializedMethodInvocation);
+                            receivedEventHandler.MethodInvocationReceived(outerClass, receivedMethodInvocation);
+                        }
+                        catch (Exception e) {
+                            /* //[BEGIN_METRICS]
+                            metricLogger.CancelBegin(new RemoteMethodReceiveTime());
+                            //[END_METRICS] */
+                            throw e;
+                        }
                         /* //[BEGIN_LOGGING]
                         logger.Log(outerClass, LogLevel.Information, "Received method invocation '" + receivedMethodInvocation.getName() + "'.");
                         //[END_LOGGING] */

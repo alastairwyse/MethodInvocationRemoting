@@ -7,12 +7,12 @@
     <!-- Comment this section to disable logging -->
     <property name="BeginLogging.token" value="*/"/>
     <property name="EndLogging.token" value="/*"/>
-    
+    	
 
     <!-- Comment this section to disable metrics -->
     <property name="BeginMetrics.token" value="*/"/>
     <property name="EndMetrics.token" value="/*"/>
-    
+    	
     
     <!-- Uncomment this section to disable logging 
     <property name="BeginLogging.token" value=""/>

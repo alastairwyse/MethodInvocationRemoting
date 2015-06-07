@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -18,7 +18,6 @@ package net.alastairwyse.applicationmetrics;
 
 import java.lang.Thread.*;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 import net.alastairwyse.operatingsystemabstraction.*;
 
@@ -53,6 +52,8 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
     /** Lock object which should be set before dequeuing from queue intervalMetricEventQueue. */
     protected Object intervalMetricEventQueueLock;
     
+    /** Object which implements a processing strategy for the buffers (queues). */
+    protected IBufferProcessingStrategy bufferProcessingStrategy;
     /** Object which provides the current date and time. */
     protected ICalendarProvider calendarProvider;
     /** Handler for any uncaught exceptions occurring on the worker thread. */
@@ -60,30 +61,14 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
 
     // HashMap object to temporarily store the start instance of any received interval metrics
     private HashMap<Class<?>, IntervalMetricEventInstance> startIntervalMetricEventStore;
-    private Thread dequeueOperationThread;
-    private int dequeueOperationLoopInterval;
-    private volatile boolean cancelRequest;
-    private boolean testConstructor = false;
-    // CountDownLatch object used to signal client test code that an iteration of the loop in the dequeue operation thread has completed
-    private CountDownLatch dequeueOperationLoopCompleteSignal;
     private boolean intervalMetricChecking;
 
     /**
      * Initialises a new instance of the MetricLoggerBuffer class.
-     * @param dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues and processes metric events.
-     * @param intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
      */
-    protected MetricLoggerBuffer(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler) {
-        if (dequeueOperationLoopInterval >= 0){
-            this.dequeueOperationLoopInterval = dequeueOperationLoopInterval;
-        }
-        else {
-            throw new IllegalArgumentException("Argument 'dequeueOperationLoopInterval' must be greater than or equal to 0.");
-        }
-
-        this.intervalMetricChecking = intervalMetricChecking;
-
+    protected MetricLoggerBuffer(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking) {
         countMetricEventQueue = new LinkedList<CountMetricEventInstance>();
         amountMetricEventQueue = new LinkedList<AmountMetricEventInstance>();
         statusMetricEventQueue = new LinkedList<StatusMetricEventInstance>();
@@ -93,53 +78,48 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
         statusMetricEventQueueLock = new Object();
         intervalMetricEventQueueLock = new Object();
 
-        startIntervalMetricEventStore = new HashMap<Class<?>, IntervalMetricEventInstance>();
+        this.bufferProcessingStrategy = bufferProcessingStrategy;
+        this.bufferProcessingStrategy.setBufferProcessedEventHandler(new BufferProcessedEventHandler());        
         calendarProvider = new CalendarProvider();
-        this.exceptionHandler = exceptionHandler;
+        
+        startIntervalMetricEventStore = new HashMap<Class<?>, IntervalMetricEventInstance>();
+        this.intervalMetricChecking = intervalMetricChecking;
     }
 
     /**
      * Initialises a new instance of the ApplicationMetrics.MetricLoggerBuffer class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
-     * @param dequeueOperationLoopInterval        The time to wait in between iterations of the worker thread which dequeues and processes metric events.
-     * @param intervalMetricChecking              Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler                    Handler for any uncaught exceptions occurring on the worker thread.
-     * @param calendarProvider                    A test (mock) ICalendarProvider object.
-     * @param dequeueOperationLoopCompleteSignal  Notifies test code that an iteration of the worker thread which dequeues and processes metric events has completed.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  calendarProvider          A test (mock) ICalendarProvider object.
      */
-    protected MetricLoggerBuffer(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler, ICalendarProvider calendarProvider, CountDownLatch dequeueOperationLoopCompleteSignal) {
-        this(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler);
+    protected MetricLoggerBuffer(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking, ICalendarProvider calendarProvider) {
+        this(bufferProcessingStrategy, intervalMetricChecking);
         this.calendarProvider = calendarProvider;
-        testConstructor = true;
-        this.dequeueOperationLoopCompleteSignal = dequeueOperationLoopCompleteSignal;
     }
 
     /**
-     * Starts a worker thread which calls methods to dequeue and process metric events, at an interval specified by constructor parameter 'dequeueOperationLoopInterval'.
+     * Starts the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method starts the worker thread).
+     * This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.
      */
     public void Start() {
-        cancelRequest = false;
-
-        dequeueOperationThread = new Thread(new DequeueOperationHandler());
-        dequeueOperationThread.setName("ApplicationMetrics.MetricLoggerBuffer metric event dequeue amd process worker thread.");
-        dequeueOperationThread.setUncaughtExceptionHandler(exceptionHandler);
-        dequeueOperationThread.start();
+        bufferProcessingStrategy.Start();
     }
     
     /**
-     * Stops the thread which dequeues metric events from the internal buffers.
+     * Stops the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method stops the worker thread).
+     * This method is maintained on this class for backwards compatibility, as it is now available on interface IBufferProcessingStrategy.
+     * @throws  InterruptedException  if an error occurs when stopping the worker thread.
      */
     public void Stop() throws InterruptedException  {
-        cancelRequest = true;
-        if(dequeueOperationThread != null) {
-            dequeueOperationThread.join();
-        }
+        bufferProcessingStrategy.Stop();
     }
 
     @Override
     public void Increment(CountMetric countMetric) {
         synchronized (countMetricEventQueueLock) {
             countMetricEventQueue.addLast(new CountMetricEventInstance(countMetric, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
+            bufferProcessingStrategy.NotifyCountMetricEventBuffered();
         }
     }
 
@@ -147,6 +127,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
     public void Add(AmountMetric amountMetric) {
         synchronized (amountMetricEventQueueLock) {
             amountMetricEventQueue.addLast(new AmountMetricEventInstance(amountMetric, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
+            bufferProcessingStrategy.NotifyAmountMetricEventBuffered();
         }
     }
 
@@ -154,6 +135,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
     public void Set(StatusMetric statusMetric) {
         synchronized (statusMetricEventQueueLock) {
             statusMetricEventQueue.addLast(new StatusMetricEventInstance(statusMetric, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
+            bufferProcessingStrategy.NotifyStatusMetricEventBuffered();
         }
     }
 
@@ -161,6 +143,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
     public void Begin(IntervalMetric intervalMetric) {
         synchronized (intervalMetricEventQueueLock) {
             intervalMetricEventQueue.addLast(new IntervalMetricEventInstance(intervalMetric, IntervalMetricEventTimePoint.Start, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
+            
         }
     }
 
@@ -168,6 +151,14 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
     public void End(IntervalMetric intervalMetric) {
         synchronized (intervalMetricEventQueueLock) {
             intervalMetricEventQueue.addLast(new IntervalMetricEventInstance(intervalMetric, IntervalMetricEventTimePoint.End, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
+            bufferProcessingStrategy.NotifyIntervalMetricEventBuffered();
+        }
+    }
+    
+    @Override
+    public void CancelBegin(IntervalMetric intervalMetric) {
+        synchronized (intervalMetricEventQueueLock) {
+            intervalMetricEventQueue.addLast(new IntervalMetricEventInstance(intervalMetric, IntervalMetricEventTimePoint.Cancel, calendarProvider.getCalendar(TimeZone.getTimeZone(timeZoneId))));
         }
     }
 
@@ -206,6 +197,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
 
     /**
      * Dequeues and processes metric events stored in the internal buffer.
+     * @throws  Exception  if an error occurs when processing the metric events in the buffer (note these errors would typically occur in subclasses of this class, e.g. when attempting to write the metric events to external storage).
      */
     protected void DequeueAndProcessMetricEvents() throws Exception {
         DequeueAndProcessCountMetricEvents();
@@ -224,6 +216,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
         synchronized (countMetricEventQueueLock) {
             tempQueue = new LinkedList<CountMetricEventInstance>(countMetricEventQueue);
             countMetricEventQueue.clear();
+            bufferProcessingStrategy.NotifyCountMetricEventBufferCleared();
         }
 
         // Process all items in the temporary queue
@@ -243,6 +236,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
         synchronized (amountMetricEventQueueLock) {
             tempQueue = new LinkedList<AmountMetricEventInstance>(amountMetricEventQueue);
             amountMetricEventQueue.clear();
+            bufferProcessingStrategy.NotifyAmountMetricEventBufferCleared();
         }
 
         // Process all items in the temporary queue
@@ -261,6 +255,7 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
         synchronized (statusMetricEventQueueLock) {
             tempQueue = new LinkedList<StatusMetricEventInstance>(statusMetricEventQueue);
             statusMetricEventQueue.clear();
+            bufferProcessingStrategy.NotifyStatusMetricEventBufferCleared();
         }
 
         // Process all items in the temporary queue
@@ -279,76 +274,77 @@ abstract class MetricLoggerBuffer implements IMetricLogger {
         synchronized (intervalMetricEventQueueLock) {
             tempQueue = new LinkedList<IntervalMetricEventInstance>(intervalMetricEventQueue);
             intervalMetricEventQueue.clear();
+            bufferProcessingStrategy.NotifyIntervalMetricEventBufferCleared();
         }
 
         // Process all items in the temporary queue
         while (tempQueue.size() > 0) {
             IntervalMetricEventInstance currentIntervalMetricEvent = tempQueue.removeFirst();
 
-            // If the current interval metric represents the start of the interval, put it in the dictionary object 
-            if (currentIntervalMetricEvent.getTimePoint() == IntervalMetricEventTimePoint.Start) {
-                if (startIntervalMetricEventStore.containsKey(currentIntervalMetricEvent.getMetricType()) == true) {
-                    // If a start interval event of this type was already received and checking is enabled, throw an exception
-                    if (intervalMetricChecking == true) {
-                        throw new Exception("Received duplicate begin '" + currentIntervalMetricEvent.getMetric().getName() + "' metrics.");
+            switch (currentIntervalMetricEvent.getTimePoint()) {
+                // If the current interval metric represents the start of the interval, put it in the HashMap object 
+                case Start:
+                    if (startIntervalMetricEventStore.containsKey(currentIntervalMetricEvent.getMetricType()) == true) {
+                        // If a start interval event of this type was already received and checking is enabled, throw an exception
+                        if (intervalMetricChecking == true) {
+                            throw new IllegalStateException("Received duplicate begin '" + currentIntervalMetricEvent.getMetric().getName() + "' metrics.");
+                        }
+                        // If checking is not enabled, replace the currently stored begin interval event with the new one
+                        else {
+                            startIntervalMetricEventStore.remove(currentIntervalMetricEvent.getMetricType());
+                            startIntervalMetricEventStore.put(currentIntervalMetricEvent.getMetricType(), currentIntervalMetricEvent);
+                        }
                     }
-                    // If checking is not enabled, replace the currently stored begin interval event with the new one
                     else {
-                        startIntervalMetricEventStore.remove(currentIntervalMetricEvent.getMetricType());
                         startIntervalMetricEventStore.put(currentIntervalMetricEvent.getMetricType(), currentIntervalMetricEvent);
                     }
-                }
-                else {
-                    startIntervalMetricEventStore.put(currentIntervalMetricEvent.getMetricType(), currentIntervalMetricEvent);
-                }
-            }
-            // If the current interval metric represents the end of the interval, call the method to process it
-            else {
-                if (startIntervalMetricEventStore.containsKey(currentIntervalMetricEvent.getMetricType()) == true) {
-                    long intervalDuration = currentIntervalMetricEvent.getEventTime().getTimeInMillis() - startIntervalMetricEventStore.get(currentIntervalMetricEvent.getMetricType()).getEventTime().getTimeInMillis();
-                    // If the duration is less then 0 set back to 0, as the start time could be after the end time in the case the metric event occurred across a system time update
-                    if (intervalDuration < 0) {
-                        intervalDuration = 0;
-                    }
+                    break;
                     
-                    ProcessIntervalMetricEvent(startIntervalMetricEventStore.get(currentIntervalMetricEvent.getMetricType()), intervalDuration);
+                 // If the current interval metric represents the end of the interval, call the method to process it    
+                case End:
+                    if (startIntervalMetricEventStore.containsKey(currentIntervalMetricEvent.getMetricType()) == true) {
+                        long intervalDuration = currentIntervalMetricEvent.getEventTime().getTimeInMillis() - startIntervalMetricEventStore.get(currentIntervalMetricEvent.getMetricType()).getEventTime().getTimeInMillis();
+                        // If the duration is less then 0 set back to 0, as the start time could be after the end time in the case the metric event occurred across a system time update
+                        if (intervalDuration < 0) {
+                            intervalDuration = 0;
+                        }
+                        
+                        ProcessIntervalMetricEvent(startIntervalMetricEventStore.get(currentIntervalMetricEvent.getMetricType()), intervalDuration);
 
-                    startIntervalMetricEventStore.remove(currentIntervalMetricEvent.getMetricType());
-                }
-                else {
-                    // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
-                    if (intervalMetricChecking == true) {
-                        throw new Exception("Received end '" + currentIntervalMetricEvent.getMetric().getName() + "' with no corresponding start interval metric.");
+                        startIntervalMetricEventStore.remove(currentIntervalMetricEvent.getMetricType());
                     }
-                    // If checking is not enabled discard the interval event
-                }
+                    else {
+                        // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
+                        if (intervalMetricChecking == true) {
+                            throw new IllegalStateException("Received end '" + currentIntervalMetricEvent.getMetric().getName() + "' with no corresponding start interval metric.");
+                        }
+                        // If checking is not enabled discard the interval event
+                    }
+                    break;
+                    
+                 // If the current interval metric represents the cancelling of the interval, remove it from the dictionary object     
+                case Cancel:
+                    if (startIntervalMetricEventStore.containsKey(currentIntervalMetricEvent.getMetricType()) == true) {
+                        startIntervalMetricEventStore.remove(currentIntervalMetricEvent.getMetricType());
+                    }
+                    else {
+                        // If no corresponding start interval event of this type exists and checking is enabled, throw an exception
+                        if (intervalMetricChecking == true) {
+                            throw new IllegalStateException("Received cancel '" + currentIntervalMetricEvent.getMetric().getName() + "' with no corresponding start interval metric.");
+                        }
+                        // If checking is not enabled discard the interval event
+                    }
+                    break;
             }
         }
     }
     
-    private class DequeueOperationHandler implements Runnable {
-        
-        public DequeueOperationHandler() {
-        }
-        
+    private class BufferProcessedEventHandler implements IBufferProcessedEventHandler {
+
         @Override
-        public void run() {
-            try {
-                while (cancelRequest == false) {
-                    DequeueAndProcessMetricEvents();
-                    if (dequeueOperationLoopInterval > 0) {
-                        Thread.sleep(dequeueOperationLoopInterval);
-                    }
-                    // If the code is being tested, allow only a single iteration of the loop
-                    if (testConstructor == true) {
-                        dequeueOperationLoopCompleteSignal.countDown();
-                        break;
-                    }
-                }
-            }
-            catch(Exception e) {
-                throw new RuntimeException("Exception in DequeueOperationHandler thread.", e);
-            }
+        public void BufferProcessed() throws Exception {
+            MetricLoggerBuffer.this.DequeueAndProcessMetricEvents();
         }
+        
     }
 }

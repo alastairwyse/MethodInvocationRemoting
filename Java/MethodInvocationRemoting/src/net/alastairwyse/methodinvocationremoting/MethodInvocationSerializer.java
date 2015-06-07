@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -210,6 +210,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             //[END_LOGGING] */
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MethodInvocationSerializeTime());
+            //[END_METRICS] */
             throw new SerializationException("Failed to serialize invocation of method '" + inputMethodInvocation.getName() + "'.", inputMethodInvocation, e);
         }
 
@@ -260,6 +263,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             //[END_LOGGING] */
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MethodInvocationDeserializeTime());
+            //[END_METRICS] */
             throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
         }
         
@@ -297,6 +303,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             //[END_LOGGING] */
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new ReturnValueSerializeTime());
+            //[END_METRICS] */
             throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
         }
 
@@ -333,6 +342,9 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
             //[END_LOGGING] */
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new ReturnValueDeserializeTime());
+            //[END_METRICS] */
             throw new DeserializationException("Failed to deserialize return value.", serializedReturnValue, e);
         }
         
@@ -348,8 +360,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private String GetSerializedTypeFromMap(Class<?> nativeType) throws Exception {
         String returnType = operationMap.GetSerializedType(nativeType);
 
-        if (returnType == null)
-        {
+        if (returnType == null) {
             throw new Exception("Native type '" + nativeType.getName() + "' does not exist in the operation map.");
         }
 
@@ -365,8 +376,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private Class<?> GetDeserializedTypeFromMap(String serializedType) throws Exception {
         Class<?> returnType = operationMap.GetNativeType(serializedType);
 
-        if (returnType == null)
-        {
+        if (returnType == null) {
             throw new Exception("Serialized type '" + serializedType + "' does not exist in the operation map.");
         }
 
@@ -393,10 +403,8 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private void SerializeParameters(Object[] parameters, XMLStreamWriter writer) throws XMLStreamException, Exception {
         // Write parameters start tag (e.g. <Parameters>)
         writer.writeStartElement(parametersElementName);
-        if (parameters != null)
-        {
-            for (int i = 0; i < parameters.length; i = i + 1)
-            {
+        if (parameters != null) {
+            for (int i = 0; i < parameters.length; i = i + 1) {
                 SerializeItem(parameters[i], parameterElementName, writer);
                 /* //[BEGIN_LOGGING]
                 loggingUtilities.LogParameter(this, "Serialized", parameters[i]);
@@ -453,8 +461,7 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private void SerializeReturnType(Class<?> returnType, XMLStreamWriter writer) throws XMLStreamException, Exception {
         // Write return type start tag (e.g. <ReturnType>)
         writer.writeStartElement(returnTypeElementName);
-        if (returnType != null)
-        {
+        if (returnType != null) {
             WriteElementString(writer, dataTypeElementName, GetSerializedTypeFromMap(returnType));
         }
         // Write return type end tag (e.g. </ReturnType>)
@@ -584,35 +591,27 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     private MethodInvocation BuildMethodInvocation(String name, ArrayList parameterList, Class<?> returnType) throws Exception {
         MethodInvocation returnMethodInvocation;
 
-        try
-        {
-            if (parameterList.size() == 0)
-            {
-                if (returnType == null)
-                {
+        try {
+            if (parameterList.size() == 0) {
+                if (returnType == null) {
                     returnMethodInvocation = new MethodInvocation(name);
                 }
-                else
-                {
+                else {
                     returnMethodInvocation = new MethodInvocation(name, returnType);
                 }
             }
-            else
-            {
+            else {
                 Object[] parameters = parameterList.toArray();
 
-                if (returnType == null)
-                {
+                if (returnType == null) {
                     returnMethodInvocation = new MethodInvocation(name, parameters);
                 }
-                else
-                {
+                else {
                     returnMethodInvocation = new MethodInvocation(name, parameters, returnType);
                 }
             }
         }
-        catch (Exception e)
-        {
+        catch (Exception e) {
             throw new Exception("Failed to build method invocation object.", e);
         }
 
@@ -621,10 +620,10 @@ public class MethodInvocationSerializer implements IMethodInvocationSerializer {
     
     /**
      * Writes a complete element with the specified name and value.
-     * @param writer               The XMLStreamWriter to write to.
-     * @param localName            The name of the element.
-     * @param value                The value of the element. 
-     * @throws XMLStreamException
+     * @param   writer              The XMLStreamWriter to write to.
+     * @param   localName           The name of the element.
+     * @param   value               The value of the element. 
+     * @throws  XMLStreamException  if an unexpected error occurs when writing to the XMLStreamWriter.
      */
     protected void WriteElementString(XMLStreamWriter writer, String localName, String value) throws XMLStreamException {
         writer.writeStartElement(localName);

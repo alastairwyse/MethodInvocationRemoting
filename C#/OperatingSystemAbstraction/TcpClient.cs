@@ -134,10 +134,12 @@ namespace OperatingSystemAbstraction
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~TcpClient()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -123,20 +123,28 @@ namespace MethodInvocationRemoting
 
             object returnValue;
 
-            // Check that inputted method invocation does not have a void return type.
-            if (inputMethodInvocation.ReturnType == null)
-            {
-                throw new ArgumentException("Method invocation cannot have a void return type.", "inputMethodInvocation");
-            }
-
-            string serializedReturnValue = SerializeAndSend(inputMethodInvocation);
             try
             {
-                returnValue = serializer.DeserializeReturnValue(serializedReturnValue);
+                // Check that inputted method invocation does not have a void return type.
+                if (inputMethodInvocation.ReturnType == null)
+                {
+                    throw new ArgumentException("Method invocation cannot have a void return type.", "inputMethodInvocation");
+                }
+
+                string serializedReturnValue = SerializeAndSend(inputMethodInvocation);
+                try
+                {
+                    returnValue = serializer.DeserializeReturnValue(serializedReturnValue);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Failed to deserialize return value.", e);
+                }
             }
             catch (Exception e)
             {
-                throw new Exception("Failed to deserialize return value.", e);
+                metricsUtilities.CancelBegin(new RemoteMethodSendTime());
+                throw e;
             }
 
             metricsUtilities.End(new RemoteMethodSendTime());
@@ -151,16 +159,24 @@ namespace MethodInvocationRemoting
         {
             metricsUtilities.Begin(new RemoteMethodSendTime());
 
-            // Check that inputted method invocation has a void return type.
-            if (inputMethodInvocation.ReturnType != null)
+            try
             {
-                throw new ArgumentException("Method invocation must have a void return type.", "inputMethodInvocation");
-            }
+                // Check that inputted method invocation has a void return type.
+                if (inputMethodInvocation.ReturnType != null)
+                {
+                    throw new ArgumentException("Method invocation must have a void return type.", "inputMethodInvocation");
+                }
 
-            string serializedReturnValue = SerializeAndSend(inputMethodInvocation);
-            if (serializedReturnValue != serializer.VoidReturnValue)
+                string serializedReturnValue = SerializeAndSend(inputMethodInvocation);
+                if (serializedReturnValue != serializer.VoidReturnValue)
+                {
+                    throw new Exception("Invocation of void method returned non-void.");
+                }
+            }
+            catch (Exception e)
             {
-                throw new Exception("Invocation of void method returned non-void.");
+                metricsUtilities.CancelBegin(new RemoteMethodSendTime());
+                throw e;
             }
 
             metricsUtilities.End(new RemoteMethodSendTime());

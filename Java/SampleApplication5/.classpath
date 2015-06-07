@@ -6,5 +6,6 @@
 	<classpathentry combineaccessrules="false" kind="src" path="/ApplicationMetrics"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MethodInvocationRemoting"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/MethodInvocationRemotingMetrics"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/OperatingSystemAbstraction"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

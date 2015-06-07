@@ -147,7 +147,7 @@ public class FileApplicationLogger extends ApplicationLoggerBase implements IApp
     
     /**
      * Closes the log file.
-     * @throws IOException
+     * @throws  IOException  if an error occurs when trying to close the underlying file.
      */
     public void Close() throws IOException {
         fileWriter.close();

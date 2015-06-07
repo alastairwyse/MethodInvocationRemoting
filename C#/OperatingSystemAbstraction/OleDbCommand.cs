@@ -93,10 +93,12 @@ namespace OperatingSystemAbstraction
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~OleDbCommand()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

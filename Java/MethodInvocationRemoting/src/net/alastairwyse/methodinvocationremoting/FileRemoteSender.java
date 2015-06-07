@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -40,16 +40,13 @@ public class FileRemoteSender implements IRemoteSender {
      * @param lockFilePath     The full path of the file used to indicate when the message file is locked for writing.
      */
     public FileRemoteSender(String messageFilePath, String lockFilePath) {
-        if (messageFile == null)
-        {
+        if (messageFile == null) {
             messageFile = new File(messageFilePath);
         }
-        if (lockFile == null)
-        {
+        if (lockFile == null) {
             lockFile = new File(lockFilePath);
         }
-        if (fileSystem == null)
-        {
+        if (fileSystem == null) {
             fileSystem = new FileSystem();
         }
         this.lockFilePath = lockFilePath;
@@ -115,27 +112,30 @@ public class FileRemoteSender implements IRemoteSender {
     
     @Override
     public void Send(String message) throws Exception {
+        /* //[BEGIN_METRICS]
+        metricLogger.Begin(new MessageSendTime());
+        //[END_METRICS] */
+        
         try {
-            /* //[BEGIN_METRICS]
-            metricLogger.Begin(new MessageSendTime());
-            //[END_METRICS] */
-            
             // Lock file is created before data is written to the message file
             //   The FileRemoteReceiver class checks for the absence of the lock file to prevent attempting to open the message file when it is partially written and causing an exception
             lockFile.WriteAll("");
             messageFile.WriteAll(message);
             fileSystem.DeleteFile(lockFilePath);
-            
-            /* //[BEGIN_METRICS]
-            metricLogger.End(new MessageSendTime());
-            metricLogger.Increment(new MessageSent());
-            //[END_METRICS] */
-            /* //[BEGIN_LOGGING]
-            logger.Log(this, LogLevel.Information, "Message sent.");
-            //[END_LOGGING] */
         }
         catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MessageSendTime());
+            //[END_METRICS] */
             throw new Exception("Error sending message.", e);
         }
+
+        /* //[BEGIN_METRICS]
+        metricLogger.End(new MessageSendTime());
+        metricLogger.Increment(new MessageSent());
+        //[END_METRICS] */
+        /* //[BEGIN_LOGGING]
+        logger.Log(this, LogLevel.Information, "Message sent.");
+        //[END_LOGGING] */
     }
 }

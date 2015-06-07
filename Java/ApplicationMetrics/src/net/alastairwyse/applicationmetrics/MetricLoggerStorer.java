@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,9 +16,7 @@
 
 package net.alastairwyse.applicationmetrics;
 
-import java.lang.Thread.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import net.alastairwyse.operatingsystemabstraction.*;
 
@@ -40,26 +38,23 @@ abstract class MetricLoggerStorer extends MetricLoggerBuffer {
 
     /**
      * Initialises a new instance of the MetricLoggerStorer class.
-     * @param dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues and processes metric events.
-     * @param intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
      */
-    protected MetricLoggerStorer(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler);
+    protected MetricLoggerStorer(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking) {
+        super(bufferProcessingStrategy, intervalMetricChecking);
         InitialisePrivateMembers();
     }
     
     /**
      * Initialises a new instance of the MetricLoggerStorer class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
-     * @param dequeueOperationLoopInterval        The time to wait in between iterations of the worker thread which dequeues and processes metric events.
-     * @param intervalMetricChecking              Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler                    Handler for any uncaught exceptions occurring on the worker thread.
-     * @param calendarProvider                    A test (mock) ICalendarProvider object.
-     * @param dequeueOperationLoopCompleteSignal  Notifies test code that an iteration of the worker thread which dequeues and processes metric events has completed.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  calendarProvider          A test (mock) ICalendarProvider object.
      */
-    protected MetricLoggerStorer(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler, ICalendarProvider calendarProvider, CountDownLatch dequeueOperationLoopCompleteSignal) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler, calendarProvider, dequeueOperationLoopCompleteSignal);
+    protected MetricLoggerStorer(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking, ICalendarProvider calendarProvider) {
+        super(bufferProcessingStrategy, intervalMetricChecking, calendarProvider);
         InitialisePrivateMembers();
     }
 

@@ -47,14 +47,17 @@
     <Compile Include="ConsoleMetricLoggerTests.cs" />
     <Compile Include="FileMetricLoggerTests.cs" />
     <Compile Include="InvalidNameMetrics.cs" />
+    <Compile Include="LoopingWorkerThreadBufferProcessorTests.cs" />
     <Compile Include="PerformanceCounterMetricLoggerTests.cs" />
     <Compile Include="ExceptionStorer.cs" />
     <Compile Include="MicrosoftAccessMetricLoggerTests.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="SizeLimitedBufferProcessorTests.cs" />
     <Compile Include="TestAvailableMemoryMetric.cs" />
     <Compile Include="TestDiskBytesReadMetric.cs" />
     <Compile Include="TestDiskReadOperationMetric.cs" />
     <Compile Include="TestDiskReadTimeMetric.cs" />
+    <Compile Include="TestDiskWriteTimeMetric.cs" />
     <Compile Include="TestFreeWorkerThreadsMetric.cs" />
     <Compile Include="TestMessageBytesReceivedMetric.cs" />
     <Compile Include="TestMessageProcessingTimeMetric.cs" />

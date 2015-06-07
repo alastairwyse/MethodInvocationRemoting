@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,10 +16,10 @@
 
 package net.alastairwyse.methodinvocationremoting;
 
-import java.util.*;
+import java.util.Vector;
 import java.io.*;
 import java.util.zip.*;
-import org.apache.commons.codec.binary.*;
+import org.apache.commons.codec.binary.Base64;
 import net.alastairwyse.applicationlogging.*;
 import net.alastairwyse.applicationmetrics.*;
 import net.alastairwyse.methodinvocationremotingmetrics.*;
@@ -210,6 +210,9 @@ public class RemoteReceiverDecompressor implements IRemoteReceiver {
                 returnString = new String(decompressedBytes, stringEncodingCharset);
             }
             catch (Exception e) {
+                /* //[BEGIN_METRICS]
+                metricLogger.CancelBegin(new StringDecompressTime());
+                //[END_METRICS] */
                 throw new Exception("Error decompressing message.", e);
             }
         }

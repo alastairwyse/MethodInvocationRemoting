@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -226,6 +226,7 @@ namespace MethodInvocationRemoting
                 }
                 catch (Exception e)
                 {
+                    metricsUtilities.CancelBegin(new MethodInvocationSerializeTime());
                     throw new SerializationException("Failed to serialize invocation of method '" + inputMethodInvocation.Name + "'.", inputMethodInvocation, e);
                 }
 
@@ -273,10 +274,13 @@ namespace MethodInvocationRemoting
                 }
                 catch (Exception e)
                 {
+                    metricsUtilities.CancelBegin(new MethodInvocationDeserializeTime());
                     throw new DeserializationException("Failed to deserialize method invocation.", serializedMethodInvocation, e);
                 }
-
-                reader.Close();
+                finally
+                {
+                    reader.Close();
+                }
             }
 
             metricsUtilities.End(new MethodInvocationDeserializeTime());
@@ -298,16 +302,24 @@ namespace MethodInvocationRemoting
             {
                 try
                 {
-                    SerializeItem(inputReturnValue, returnValueElementName, writer);
+                    try
+                    {
+                        SerializeItem(inputReturnValue, returnValueElementName, writer);
+                    }
+                    catch (Exception e)
+                    {
+                        throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
+                    }
+
+                    writer.Flush();
+                    returnString = serializerUtilities.ConvertMemoryStreamToString(outputStream);
+                    writer.Close();
                 }
                 catch (Exception e)
                 {
-                    throw new SerializationException("Failed to serialize return value.", inputReturnValue, e);
+                    metricsUtilities.CancelBegin(new ReturnValueSerializeTime());
+                    throw e;
                 }
-
-                writer.Flush();
-                returnString = serializerUtilities.ConvertMemoryStreamToString(outputStream);
-                writer.Close();
             }
 
             metricsUtilities.End(new ReturnValueSerializeTime());
@@ -336,11 +348,13 @@ namespace MethodInvocationRemoting
                 }
                 catch (Exception e)
                 {
+                    metricsUtilities.CancelBegin(new ReturnValueDeserializeTime());
                     throw new DeserializationException("Failed to deserialize return value.", serializedReturnValue, e);
                 }
-
-                reader.Close();
-
+                finally
+                {
+                    reader.Close();
+                }
             }
 
             metricsUtilities.End(new ReturnValueDeserializeTime());

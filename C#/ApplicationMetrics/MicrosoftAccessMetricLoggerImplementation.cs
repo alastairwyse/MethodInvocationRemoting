@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -34,8 +34,9 @@ namespace ApplicationMetrics
     class MicrosoftAccessMetricLoggerImplementation : MetricLoggerBuffer, IDisposable
     {
         const string accessConnectionStringPrefix = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=";
-        
-        protected bool disposed;
+
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private string databaseFilePath;
         private string metricCategoryName;
         private IOleDbConnection dbConnection;
@@ -51,10 +52,10 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="databaseFilePath">The full path to the Microsoft Access data file.</param>
         /// <param name="metricCategoryName">The name of the category which the metric events should be logged under in the database.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        public MicrosoftAccessMetricLoggerImplementation(string databaseFilePath, string metricCategoryName, int dequeueOperationLoopInterval, bool intervalMetricChecking)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        public MicrosoftAccessMetricLoggerImplementation(string databaseFilePath, string metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             InitialisePrivateMembers(databaseFilePath, metricCategoryName);
             dbConnection = new OleDbConnection();
@@ -73,14 +74,14 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="databaseFilePath">The full path to the Microsoft Access data file.</param>
         /// <param name="metricCategoryName">The name of the category which the metric events should be logged under in the database.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="dbConnection">A test (mock) database connection object.</param>
         /// <param name="dbCommand">A test (mock) database command object.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public MicrosoftAccessMetricLoggerImplementation(string databaseFilePath, string metricCategoryName, int dequeueOperationLoopInterval, bool intervalMetricChecking, IOleDbConnection dbConnection, IOleDbCommand dbCommand, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking, dateTime, exceptionHandler)
+        public MicrosoftAccessMetricLoggerImplementation(string databaseFilePath, string metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IOleDbConnection dbConnection, IOleDbCommand dbCommand, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : base(bufferProcessingStrategy, intervalMetricChecking, dateTime, exceptionHandler)
         {
             InitialisePrivateMembers(databaseFilePath, metricCategoryName);
             this.dbConnection = dbConnection;
@@ -362,10 +363,12 @@ namespace ApplicationMetrics
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~MicrosoftAccessMetricLoggerImplementation()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

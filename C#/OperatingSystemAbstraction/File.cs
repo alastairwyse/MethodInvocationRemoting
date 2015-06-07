@@ -144,11 +144,13 @@ namespace OperatingSystemAbstraction
             Dispose(true);
             GC.SuppressFinalize(this);
         }
-        
+
+        #pragma warning disable 1591
         ~File()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //******************************************************************************
         //

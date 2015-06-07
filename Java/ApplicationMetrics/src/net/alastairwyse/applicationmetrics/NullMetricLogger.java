@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -53,5 +53,10 @@ public class NullMetricLogger implements IMetricLogger {
     @Override
     public void End(IntervalMetric intervalMetric) {
 
+    }
+    
+    @Override
+    public void CancelBegin(IntervalMetric intervalMetric) {
+        
     }
 }

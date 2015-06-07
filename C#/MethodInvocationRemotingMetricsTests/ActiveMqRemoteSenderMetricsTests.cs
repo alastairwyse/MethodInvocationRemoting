@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -87,6 +89,30 @@ namespace MethodInvocationRemotingMetricsTests
             testActiveMqRemoteSender.Send("<TestMessage>Test message content</TestMessage>");
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void SendExceptionMetricsTest()
+        {
+            ITextMessage mockTextMessage = mocks.NewMock<ITextMessage>();
+            IPrimitiveMap mockTextMessageProperties = mocks.NewMock<IPrimitiveMap>();
+
+            Expect.AtLeastOnce.On(mockConnection);
+            Expect.Once.On(mockProducer).Method("Send").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Send Failure")));
+            Expect.Once.On(mockSession).Method("CreateTextMessage").Will(Return.Value(mockTextMessage));
+            Expect.Once.On(mockTextMessage).GetProperty("Properties").Will(Return.Value(mockTextMessageProperties));
+            Expect.Once.On(mockTextMessageProperties).Method("SetString").With(new object[2] { filterIdentifier, messageFilter });
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MessageSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MessageSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testActiveMqRemoteSender.Connect();
+                testActiveMqRemoteSender.Send("<TestMessage>Test message content</TestMessage>");
+            });
         }
     }
 }

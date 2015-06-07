@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -97,6 +99,22 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
+        public void SendReturnValueExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMethodInvocationSerializer).Method("SerializeReturnValue").Will(Return.Value(testSerializedReturnValue));
+                Expect.AtLeastOnce.On(mockRemoteSender).Method("Send").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Send Failure")));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodReceiveTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteReceiver.SendReturnValue(new object());
+            });
+        }
+
+        [Test]
         public void SendVoidReturnValueMetricsTest()
         {
             Expect.Once.On(mockMethodInvocationSerializer).GetProperty("VoidReturnValue").Will(Return.Value(testVoidReturnValue));
@@ -107,6 +125,19 @@ namespace MethodInvocationRemotingMetricsTests
             testMethodInvocationRemoteReceiver.SendVoidReturn();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void SendVoidReturnValueExceptionMetricsTest()
+        {
+            Expect.Once.On(mockMethodInvocationSerializer).GetProperty("VoidReturnValue").Will(Return.Value(testVoidReturnValue));
+            Expect.AtLeastOnce.On(mockRemoteSender).Method("Send").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Send Failure")));
+            Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodReceiveTime()));
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteReceiver.SendVoidReturn();
+            });
         }
 
         private void SimulateMethodInvocationReceive(object sender, MethodInvocationReceivedEventArgs e)

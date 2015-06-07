@@ -95,10 +95,12 @@ namespace OperatingSystemAbstraction
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~TcpListener()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //******************************************************************************
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -15,6 +15,8 @@
  */
 
 package net.alastairwyse.applicationmetricsunittests;
+
+import static org.junit.Assert.*;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -57,7 +59,7 @@ public class ConsoleMetricLoggerTests {
         dequeueOperationLoopCompleteSignal = new CountDownLatch(1);
         dateFormatter = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
         utilities = new ApplicationMetricsUnitTestUtilities();
-        testConsoleMetricLogger = new ConsoleMetricLogger(10, true, exceptionStorer, mockPrintStream, mockCalendarProvider, dequeueOperationLoopCompleteSignal);
+        testConsoleMetricLogger = new ConsoleMetricLogger(new LoopingWorkerThreadBufferProcessor(10, exceptionStorer, dequeueOperationLoopCompleteSignal), true, mockPrintStream, mockCalendarProvider);
     }
     
     @Test
@@ -84,6 +86,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageReceivedMetric().getName() + separatorString + "2");
         verify(mockPrintStream).println(new TestDiskReadOperationMetric().getName() + separatorString + "1");
+        assertNull(exceptionStorer.getException());
     }
 
     @Test
@@ -110,6 +113,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "3072");
         verify(mockPrintStream).println(new TestDiskBytesReadMetric(0).getName() + separatorString + "3049");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -136,6 +140,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestAvailableMemoryMetric(0).getName() + separatorString + "714768384");
         verify(mockPrintStream).println(new TestFreeWorkerThreadsMetric(0).getName() + separatorString + "8");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -168,6 +173,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestDiskReadTimeMetric().getName() + separatorString + "3737");
         verify(mockPrintStream).println(new TestMessageProcessingTimeMetric().getName() + separatorString + "67889");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -200,6 +206,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageReceivedMetric().getName() + separatorString + "5");
         verify(mockPrintStream).println("MessagesReceivedPerSecond" + separatorString + "2.5");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -223,6 +230,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(3)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println("MessagesReceivedPerSecond" + separatorString + "0.0");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -261,6 +269,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockPrintStream).println(new TestMessageReceivedMetric().getName() + separatorString + "4");
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "18");
         verify(mockPrintStream).println("BytesReceivedPerMessage" + separatorString + "4.5");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -292,6 +301,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(6)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "18");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -325,6 +335,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "1345");
         verify(mockPrintStream).println("MessageBytesPerSecond" + separatorString + "672.5");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -348,6 +359,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(3)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println("MessageBytesPerSecond" + separatorString + "0.0");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -378,6 +390,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "588");
         verify(mockPrintStream).println(new TestDiskBytesReadMetric(0).getName() + separatorString + "528");
         verify(mockPrintStream).println("MessageBytesReceivedPerDiskBytesRead" + separatorString + "1.1136363636363635");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -403,6 +416,7 @@ public class ConsoleMetricLoggerTests {
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestDiskBytesReadMetric(0).getName() + separatorString + "528");
         verify(mockPrintStream).println("MessageBytesReceivedPerDiskBytesRead" + separatorString + "0.0");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -427,6 +441,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(4)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageBytesReceivedMetric(0).getName() + separatorString + "588");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -461,6 +476,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockPrintStream).println(new TestMessageReceivedMetric().getName() + separatorString + "2");
         verify(mockPrintStream).println(new TestMessageProcessingTimeMetric().getName() + separatorString + "1245");
         verify(mockPrintStream).println("ProcessingTimePerMessage" + separatorString + "622.5");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -492,6 +508,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(6)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println(new TestMessageProcessingTimeMetric().getName() + separatorString + "1245");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test
@@ -522,6 +539,7 @@ public class ConsoleMetricLoggerTests {
         verify(mockCalendarProvider, times(7)).getCalendar(TimeZone.getTimeZone(timeZoneId));
         VerifyWriteTitleExpectations(bannerTime);
         verify(mockPrintStream).println("MessageProcessingTimePercentage" + separatorString + "0.756031746031746");
+        assertNull(exceptionStorer.getException());
     }
     
     @Test

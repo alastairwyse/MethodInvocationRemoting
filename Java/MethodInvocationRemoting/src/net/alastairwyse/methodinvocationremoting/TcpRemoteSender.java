@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -380,8 +380,7 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
                     }
                 }
                 
-                if (acknowledgementReceiveRetryInterval > 0)
-                {
+                if (acknowledgementReceiveRetryInterval > 0) {
                     Thread.sleep(acknowledgementReceiveRetryInterval);
                 }
             }
@@ -394,8 +393,7 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
             socketChannel.configureBlocking(true);
         }
         
-        if (acknowledgementReceived == false)
-        {
+        if (acknowledgementReceived == false) {
             throw new MessageAcknowledgementTimeoutException("Failed to receive message acknowledgement within timeout period of " + acknowledgementReceiveTimeout + " milliseconds.");
         }
     }
@@ -406,31 +404,37 @@ public class TcpRemoteSender implements IRemoteSender, AutoCloseable {
      * @param message        The message to send.
      */
     private void HandleExceptionAndResend(Exception sendException, String message) throws Exception {
-        if (sendException instanceof IOException) {
-            logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
-            logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
+        try {
+            if (sendException instanceof IOException) {
+                logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
+                logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
+            }
+            else if ((sendException instanceof java.nio.channels.ClosedChannelException) || (sendException instanceof MessageAcknowledgementTimeoutException)) {
+                logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
+            }
+            else {
+                throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
+            }
+    
+            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
+    
+            socketChannel.close();
+            AttemptConnect();
+            /* //[BEGIN_METRICS]
+            metricLogger.Increment(new TcpRemoteSenderReconnected());
+            //[END_METRICS] */
+            try {
+                EncodeAndSend(message);
+            }
+            catch (Exception e) {
+                throw new Exception("Error sending message.  Failed to send message after reconnecting.", e);
+            }
         }
-        else if ((sendException instanceof java.nio.channels.ClosedChannelException) || (sendException instanceof MessageAcknowledgementTimeoutException)) {
-            logger.Log(this, LogLevel.Error, sendException.getClass().getSimpleName() + " occurred whilst attempting to send message.", sendException);
-        }
-        else {
-            throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
-        }
-
-        logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
-
-        socketChannel.close();
-        AttemptConnect();
-        /* //[BEGIN_METRICS]
-        metricLogger.Increment(new TcpRemoteSenderReconnected());
-        //[END_METRICS] */
-        try
-        {
-            EncodeAndSend(message);
-        }
-        catch (Exception e)
-        {
-            throw new Exception("Error sending message.  Failed to send message after reconnecting.", e);
+        catch (Exception e) {
+            /* //[BEGIN_METRICS]
+            metricLogger.CancelBegin(new MessageSendTime());
+            //[END_METRICS] */
+            throw e;
         }
     }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -51,41 +51,49 @@ namespace ApplicationLogging.Adapters
 
         #region IApplicationLogger Members
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(ApplicationLogging.LogLevel,System.String)"]/*'/>
         public void Log(LogLevel level, string text)
         {
             PerformLogging(level, text, null);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,ApplicationLogging.LogLevel,System.String)"]/*'/>
         public void Log(object source, LogLevel level, string text)
         {
             PerformLogging(level, text, null);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Int32,ApplicationLogging.LogLevel,System.String)"]/*'/>
         public void Log(int eventIdentifier, LogLevel level, string text)
         {
             PerformLogging(level, text, null);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,System.Int32,ApplicationLogging.LogLevel,System.String)"]/*'/>
         public void Log(object source, int eventIdentifier, LogLevel level, string text)
         {
             PerformLogging(level, text, null);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(ApplicationLogging.LogLevel,System.String,System.Exception)"]/*'/>
         public void Log(LogLevel level, string text, Exception sourceException)
         {
             PerformLogging(level, text, sourceException);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,ApplicationLogging.LogLevel,System.String,System.Exception)"]/*'/>
         public void Log(object source, LogLevel level, string text, Exception sourceException)
         {
             PerformLogging(level, text, sourceException);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Int32,ApplicationLogging.LogLevel,System.String,System.Exception)"]/*'/>
         public void Log(int eventIdentifier, LogLevel level, string text, Exception sourceException)
         {
             PerformLogging(level, text, sourceException);
         }
 
+        /// <include file='InterfaceDocumentationComments.xml' path='doc/members/member[@name="M:ApplicationLogging.IApplicationLogger.Log(System.Object,System.Int32,ApplicationLogging.LogLevel,System.String,System.Exception)"]/*'/>
         public void Log(object source, int eventIdentifier, LogLevel level, string text, Exception sourceException)
         {
             PerformLogging(level, text, sourceException);

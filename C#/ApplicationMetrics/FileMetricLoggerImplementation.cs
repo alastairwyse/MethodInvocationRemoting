@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -32,7 +32,8 @@ namespace ApplicationMetrics
     /// <remarks>This class provides underlying functionality for public class FileMetricLogger.  FileMetricLogger utilizes this class via composition rather than inheritance to allow MetricLoggerBuffer to remain private within the ApplicationMetrics namespace.</remarks>
     class FileMetricLoggerImplementation : MetricLoggerBuffer, IDisposable
     {
-        protected bool disposed;
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private const string dateTimeFormat = "yyyy-MM-dd HH:mm:ss.fff";
         private char separatorCharacter;
         private IStreamWriter streamWriter;
@@ -48,10 +49,10 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
         /// <param name="filePath">The full path of the file to write the metric events to.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        public FileMetricLoggerImplementation(char separatorCharacter, string filePath, int dequeueOperationLoopInterval, bool intervalMetricChecking)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        public FileMetricLoggerImplementation(char separatorCharacter, string filePath, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             this.separatorCharacter = separatorCharacter;
             streamWriter = new StreamWriter(filePath, false, fileEncoding);
@@ -67,12 +68,12 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
         /// <param name="filePath">The full path of the file to write the metric events to.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="appendToFile">Whether to append to an existing file (if it exists) or overwrite.  A value of true causes appending.</param>
         /// <param name="fileEncoding">The character encoding to use in the file.</param>
-        public FileMetricLoggerImplementation(char separatorCharacter, string filePath, int dequeueOperationLoopInterval, bool intervalMetricChecking, bool appendToFile, Encoding fileEncoding)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        public FileMetricLoggerImplementation(char separatorCharacter, string filePath, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, bool appendToFile, Encoding fileEncoding)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             this.separatorCharacter = separatorCharacter;
             streamWriter = new StreamWriter(filePath, intervalMetricChecking, fileEncoding);
@@ -87,13 +88,13 @@ namespace ApplicationMetrics
         /// Initialises a new instance of the ApplicationMetrics.FileMetricLoggerImplementation class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
         /// <param name="separatorCharacter">The character to use to separate fields (e.g. date/time stamp, metric name) in the file.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the file.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="streamWriter">A test (mock) stream writer.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public FileMetricLoggerImplementation(char separatorCharacter, int dequeueOperationLoopInterval, bool intervalMetricChecking, IStreamWriter streamWriter, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking, dateTime, exceptionHandler)
+        public FileMetricLoggerImplementation(char separatorCharacter, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IStreamWriter streamWriter, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : base(bufferProcessingStrategy, intervalMetricChecking, dateTime, exceptionHandler)
         {
             this.separatorCharacter = separatorCharacter;
             this.streamWriter = streamWriter;
@@ -203,10 +204,12 @@ namespace ApplicationMetrics
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~FileMetricLoggerImplementation()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

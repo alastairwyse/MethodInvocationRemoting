@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,6 +14,7 @@
  * limitations under the License.
  */
 
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -56,7 +57,7 @@ namespace ApplicationMetricsUnitTests
             mockDateTime = mocks.NewMock<IDateTime>();
             exceptionStorer = new ExceptionStorer();
             workerThreadLoopCompleteSignal = new AutoResetEvent(false);
-            testConsoleMetricLogger = new ConsoleMetricLogger(10, true, mockConsole, mockDateTime, exceptionStorer);
+            testConsoleMetricLogger = new ConsoleMetricLogger(new LoopingWorkerThreadBufferProcessor(10, true), true, mockConsole, mockDateTime, exceptionStorer);
         }
 
         [Test]
@@ -82,6 +83,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -107,6 +109,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -132,6 +135,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -163,6 +167,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -193,6 +198,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -216,6 +222,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -253,6 +260,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -284,6 +292,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -315,6 +324,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -338,6 +348,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -367,6 +378,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -391,6 +403,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -417,6 +430,7 @@ namespace ApplicationMetricsUnitTests
 
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -450,6 +464,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -481,6 +496,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -510,6 +526,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -540,6 +557,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         //------------------------------------------------------------------------------

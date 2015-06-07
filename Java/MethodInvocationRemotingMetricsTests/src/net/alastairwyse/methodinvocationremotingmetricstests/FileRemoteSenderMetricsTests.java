@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,8 +16,12 @@
 
 package net.alastairwyse.methodinvocationremotingmetricstests;
 
+import java.io.IOException;
+
 import org.junit.Before;
 import org.junit.Test;
+
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
 import net.alastairwyse.operatingsystemabstraction.*;
 import net.alastairwyse.applicationlogging.*;
@@ -37,6 +41,8 @@ public class FileRemoteSenderMetricsTests {
     private IMetricLogger mockMetricLogger;
     private FileRemoteSender testFileRemoteSender;
     
+    private final String testMessage = "<TestMessage>Test message content</TestMessage>";
+    
     @Before
     public void setUp() throws Exception {
         mockMessageFile = mock(IFile.class);
@@ -54,5 +60,20 @@ public class FileRemoteSenderMetricsTests {
         verify(mockMetricLogger).End(isA(MessageSendTime.class));
         verify(mockMetricLogger).Increment(isA(MessageSent.class));
         verifyNoMoreInteractions(mockMetricLogger);
+    }
+    
+    @Test 
+    public void SendExceptionMetricsTest() throws Exception {
+        doThrow(new IOException("Mock Write Failure")).when(mockMessageFile).WriteAll(testMessage);
+        
+        try {
+            testFileRemoteSender.Send(testMessage);
+            fail("Exception was not thrown.");
+        }
+        catch (Exception e) {
+            verify(mockMetricLogger).Begin(isA(MessageSendTime.class));
+            verify(mockMetricLogger).CancelBegin(isA(MessageSendTime.class));
+            verifyNoMoreInteractions(mockMetricLogger);
+        }
     }
 }

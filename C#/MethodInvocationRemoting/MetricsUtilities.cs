@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -121,6 +121,21 @@ namespace MethodInvocationRemoting
         public void End(IntervalMetric intervalMetric)
         {
             metricLogger.End(intervalMetric);
+        }
+
+        //------------------------------------------------------------------------------
+        //
+        // Method: CancelBegin
+        //
+        //------------------------------------------------------------------------------
+        /// <summary>
+        /// Cancels the starting of the specified interval event (e.g. in the case that an exeception occurs between the starting and completion of the interval event).
+        /// </summary>
+        /// <param name="intervalMetric">The interval metric that should be cancelled.</param>
+        [Conditional("METRICS_ON")]
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            metricLogger.CancelBegin(intervalMetric);
         }
     }
 }

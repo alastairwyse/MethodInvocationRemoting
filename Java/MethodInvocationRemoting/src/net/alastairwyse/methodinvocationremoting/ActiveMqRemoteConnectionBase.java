@@ -138,7 +138,7 @@ public abstract class ActiveMqRemoteConnectionBase implements AutoCloseable {
     
     /**
      * Throws an exception if the object is currently not in a connected state.
-     * @throws Exception
+     * @throws  Exception  if the object is currently not in a connected state.
      */
     protected void CheckConnectionOpen() throws Exception {
         if(connected == false) {

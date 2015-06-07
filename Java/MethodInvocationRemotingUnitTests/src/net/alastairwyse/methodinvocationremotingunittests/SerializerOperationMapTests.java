@@ -19,7 +19,6 @@ package net.alastairwyse.methodinvocationremotingunittests;
 import static org.junit.Assert.*;
 import java.util.Date;
 
-import javax.xml.stream.XMLStreamReader;
 import javax.xml.stream.XMLStreamWriter;
 
 import org.junit.Before;

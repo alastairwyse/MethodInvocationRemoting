@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -50,10 +50,10 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricLoggerStorer class.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        protected MetricLoggerStorer(int dequeueOperationLoopInterval, bool intervalMetricChecking)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        protected MetricLoggerStorer(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             InitialisePrivateMembers();
         }
@@ -66,12 +66,12 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricLoggerStorer class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        protected MetricLoggerStorer(int dequeueOperationLoopInterval, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking, dateTime, exceptionHandler)
+        protected MetricLoggerStorer(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : base(bufferProcessingStrategy, intervalMetricChecking, dateTime, exceptionHandler)
         {
             InitialisePrivateMembers();
         }

@@ -59,6 +59,10 @@ Java/MethodInvocationRemotingLoggingTests/bin/
 Java/MethodInvocationRemotingLoggingTests/doc/
 Java/MethodInvocationRemotingUnitTests/bin/
 Java/MethodInvocationRemotingUnitTests/doc/
+Java/MethodInvocationRemotingMetrics/bin/
+Java/MethodInvocationRemotingMetrics/doc/
+Java/MethodInvocationRemotingMetricsTests/bin/
+Java/MethodInvocationRemotingMetricsTests/doc/
 Java/OperatingSystemAbstraction/bin/
 Java/OperatingSystemAbstraction/doc/
 Java/SampleApplication1/bin/

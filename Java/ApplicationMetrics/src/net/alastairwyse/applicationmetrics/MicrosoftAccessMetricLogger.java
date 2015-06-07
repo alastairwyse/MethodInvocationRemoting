@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,12 +20,12 @@ import java.lang.Thread.*;
 import java.sql.*;
 import java.text.*;
 import java.util.*;
-import java.util.concurrent.CountDownLatch;
 
 import net.alastairwyse.operatingsystemabstraction.*;
 
 /**
  * Writes metric and instrumentation events for an application to a Microsoft Access database.
+ * <b>Note</b> as of Java 8, the JDBC-ODBC bridge has been removed, which means this class no longer functions.  It seems to work using 3rd part library UCanAccess (http://ucanaccess.sourceforge.net/site.html), but this library does not support the MS Access 97 format of the included blank Access database.  The blank database could be upgraded to a later format, however as per the applicationmetrics documentation, this class is really meant to serve as just an example of how the ApplicationMetrics interfaces could be implemented to support relational databases.
  * @author Alastair Wyse
  */
 public class MicrosoftAccessMetricLogger extends MetricLoggerBuffer implements AutoCloseable {
@@ -41,32 +41,42 @@ public class MicrosoftAccessMetricLogger extends MetricLoggerBuffer implements A
 
     /**
      * Initialises a new instance of the MicrosoftAccessMetricLogger class.
-     * @param databaseFilePath              The full path to the Microsoft Access data file.
-     * @param metricCategoryName            The name of the category which the metric events should be logged under in the database.
-     * @param dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.
-     * @param intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
+     * This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility. 
+     * @param  databaseFilePath              The full path to the Microsoft Access data file.
+     * @param  metricCategoryName            The name of the category which the metric events should be logged under in the database.
+     * @param  dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.
+     * @param  intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
      */
     public MicrosoftAccessMetricLogger(String databaseFilePath, String metricCategoryName, int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler);
+        this(databaseFilePath, metricCategoryName, new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, exceptionHandler), intervalMetricChecking);
+    }
+    
+    /**
+     * Initialises a new instance of the MicrosoftAccessMetricLogger class.
+     * @param  databaseFilePath          The full path to the Microsoft Access data file.
+     * @param  metricCategoryName        The name of the category which the metric events should be logged under in the database.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     */
+    public MicrosoftAccessMetricLogger(String databaseFilePath, String metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking) {
+        super(bufferProcessingStrategy, intervalMetricChecking);
         InitialisePrivateMembers(databaseFilePath, metricCategoryName);
     }
     
     /**
      * Initialises a new instance of the MicrosoftAccessMetricLogger class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
-     * @param databaseFilePath                    The full path to the Microsoft Access data file.
-     * @param metricCategoryName                  The name of the category which the metric events should be logged under in the database.
-     * @param dequeueOperationLoopInterval        The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the Access database.
-     * @param intervalMetricChecking              Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler                    Handler for any uncaught exceptions occurring on the worker thread.
-     * @param dbConnection                        A test (mock) connection object.
-     * @param dbStatement                         A test (mock) statement object.
-     * @param calendarProvider                    A test (mock) ICalendarProvider object.
-     * @param dequeueOperationLoopCompleteSignal  Notifies test code that an iteration of the worker thread which dequeues and processes metric events has completed.
+     * @param  databaseFilePath          The full path to the Microsoft Access data file.
+     * @param  metricCategoryName        The name of the category which the metric events should be logged under in the database.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  dbConnection              A test (mock) connection object.
+     * @param  dbStatement               A test (mock) statement object.
+     * @param  calendarProvider          A test (mock) ICalendarProvider object.
      */
-    public MicrosoftAccessMetricLogger(String databaseFilePath, String metricCategoryName, int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler, Connection dbConnection, Statement dbStatement, ICalendarProvider calendarProvider, CountDownLatch dequeueOperationLoopCompleteSignal) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler, calendarProvider, dequeueOperationLoopCompleteSignal);
+    public MicrosoftAccessMetricLogger(String databaseFilePath, String metricCategoryName, IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking, Connection dbConnection, Statement dbStatement, ICalendarProvider calendarProvider) {
+        super(bufferProcessingStrategy, intervalMetricChecking, calendarProvider);
         InitialisePrivateMembers(databaseFilePath, metricCategoryName);
         this.dbConnection = dbConnection;
         this.dbStatement = dbStatement;

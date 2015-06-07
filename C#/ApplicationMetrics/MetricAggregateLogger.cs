@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -61,10 +61,10 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricAggregateLogger class.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events, and logs metric events and aggregates.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        protected MetricAggregateLogger(int dequeueOperationLoopInterval, bool intervalMetricChecking)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        protected MetricAggregateLogger(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             InitialisePrivateMembers();
         }
@@ -77,12 +77,12 @@ namespace ApplicationMetrics
         /// <summary>
         /// Initialises a new instance of the ApplicationMetrics.MetricAggregateLogger class.  Note this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
         /// </summary>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues and processes metric events, and logs metric events and aggregates.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        protected MetricAggregateLogger(int dequeueOperationLoopInterval, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking, dateTime, exceptionHandler)
+        protected MetricAggregateLogger(IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : base(bufferProcessingStrategy, intervalMetricChecking, dateTime, exceptionHandler)
         {
             InitialisePrivateMembers();
         }
@@ -93,8 +93,9 @@ namespace ApplicationMetrics
         //
         //------------------------------------------------------------------------------
         /// <summary>
-        /// Starts a worker thread which calls methods to dequeue metric events and total and store the values of them, at an interval specified by constructor parameter 'dequeueOperationLoopInterval'.
+        /// Starts the buffer processing (e.g. if the implementation of the buffer processing strategy uses a worker thread, this method starts the worker thread).
         /// </summary>
+        /// <remarks>Although this method has been deprecated in base classes, in the case of MetricAggregateLogger this Start() method should be called (rather than the Start() on the IBufferProcessingStrategy implementation) as it performs additional initialization specific to MetricAggregateLogger.</remarks>
         public override void Start()
         {
             startTime = dateTime.UtcNow;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -36,12 +36,12 @@ public class Program {
         // Setup metric logger and MethodInvocationRemoting objects
         MetricLoggerDistributor distributor = new MetricLoggerDistributor();
         ConsoleMetricLogger consoleMetricLogger = new ConsoleMetricLogger(5000, true, new MetricLoggerExceptionHandler());
+        SizeLimitedBufferProcessor fileMetricLoggerBufferProcessor = new SizeLimitedBufferProcessor(50, new MetricLoggerExceptionHandler());
         
         // Setup logger and methodinvocationremoting objects
         try(BufferedReader inputReader = new BufferedReader(new InputStreamReader(System.in));
             FileApplicationLogger remoteReceiverLog = new FileApplicationLogger(LogLevel.Information, '|', "  ", "C:\\Temp\\JavaReceiver.log");
-            FileMetricLogger fileMetricLogger = new FileMetricLogger('|', "C:\\Temp\\JavaMetrics.log", 5000, true, new MetricLoggerExceptionHandler());
-            MicrosoftAccessMetricLogger accessMetricLogger = new MicrosoftAccessMetricLogger("C:\\Temp\\MetricLogger.mdb", "SampleApplication5-Java", 5000, true, new MetricLoggerExceptionHandler());
+            FileMetricLogger fileMetricLogger = new FileMetricLogger('|', "C:\\Temp\\JavaMetrics.log", fileMetricLoggerBufferProcessor, true);
             TcpRemoteReceiver tcpReceiver = new TcpRemoteReceiver(55000, 10, 1000, 25, 1024, remoteReceiverLog, distributor);
             TcpRemoteSender tcpSender = new TcpRemoteSender(InetAddress.getLoopbackAddress(), 55001, 10, 1000, 30000, 25, remoteReceiverLog, distributor)) {
             RemoteSenderCompressor remoteSenderCompressor = new RemoteSenderCompressor(tcpSender, remoteReceiverLog, distributor);
@@ -62,11 +62,8 @@ public class Program {
             consoleMetricLogger.DefineMetricAggregate(new CompressedStringSize(0), new SerializedReturnValueSize(0), "CompressionRatio", "The average compression ratio of the serialized return values");
             distributor.AddLogger(consoleMetricLogger);
             distributor.AddLogger(fileMetricLogger);
-            distributor.AddLogger(accessMetricLogger);
             consoleMetricLogger.Start();
             fileMetricLogger.Start();
-            accessMetricLogger.Connect();
-            accessMetricLogger.Start();
             
             // Connect to the MethodInvocationRemoteSender
             tcpReceiver.Connect();
@@ -83,9 +80,7 @@ public class Program {
             
             // Stop the metric loggers
             consoleMetricLogger.Stop();
-            fileMetricLogger.Stop();
-            accessMetricLogger.Stop();
-            accessMetricLogger.Disconnect();
+            fileMetricLoggerBufferProcessor.Stop();
         }
     }
 
@@ -209,6 +204,13 @@ public class Program {
         public void End(IntervalMetric intervalMetric) {
             for (IMetricLogger currentLogger : loggerList) {
                 currentLogger.End(intervalMetric);
+            }
+        }
+        
+        @Override
+        public void CancelBegin(IntervalMetric intervalMetric) {
+            for (IMetricLogger currentLogger : loggerList) {
+                currentLogger.CancelBegin(intervalMetric);
             }
         }
     }

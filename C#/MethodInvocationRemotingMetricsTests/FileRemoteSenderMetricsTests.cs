@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -72,6 +74,23 @@ namespace MethodInvocationRemotingMetricsTests
             testFileRemoteSender.Send("<TestMessage>Test message content</TestMessage>");
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void SendExceptionMetricsTest()
+        {
+            Expect.AtLeastOnce.On(mockLockFile);
+            Expect.Once.On(mockMessageFile).Method("WriteAll").WithAnyArguments().Will(Throw.Exception(new Exception("Mock File Write Failure")));
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MessageSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MessageSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testFileRemoteSender.Send("<TestMessage>Test message content</TestMessage>");
+            });
         }
     }
 }

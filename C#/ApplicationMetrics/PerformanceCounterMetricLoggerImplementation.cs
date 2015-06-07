@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -33,7 +33,8 @@ namespace ApplicationMetrics
     /// <remarks>This class provides underlying functionality for public class PerformanceCounterMetricLogger.  PerformanceCounterMetricLogger utilizes this class via composition rather than inheritance to allow the MetricAggregateLogger class to remain private within the ApplicationMetrics namespace.</remarks>
     class PerformanceCounterMetricLoggerImplementation : MetricAggregateLogger, IDisposable
     {
-        protected bool disposed;
+        /// <summary>Indicates whether the object has been disposed.</summary>
+        protected bool disposed = false;
         private const string performanceCounterAggregateInstantaneousPostFix = "Instantaneous";
         private const string performanceCounterAggregateBasePostFix = "Base";
         private const int performanceCounterMaximumNameLength = 80;
@@ -59,10 +60,10 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="metricCategoryName">The name of the performance counter category which the metric events should be logged under.</param>
         /// <param name="metricCategoryDescription">The description of the performance counter category which the metric events should be logged under.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to performance counters.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
-        public PerformanceCounterMetricLoggerImplementation(string metricCategoryName, string metricCategoryDescription, int dequeueOperationLoopInterval, bool intervalMetricChecking)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking)
+        public PerformanceCounterMetricLoggerImplementation(string metricCategoryName, string metricCategoryDescription, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking)
+            : base(bufferProcessingStrategy, intervalMetricChecking)
         {
             InitialisePrivateMembers(metricCategoryName, metricCategoryDescription);
             counterCreationDataFactory = new CounterCreationDataFactory();
@@ -80,7 +81,7 @@ namespace ApplicationMetrics
         /// </summary>
         /// <param name="metricCategoryName">The name of the performance counter category which the metric events should be logged under.</param>
         /// <param name="metricCategoryDescription">The description of the performance counter category which the metric events should be logged under.</param>
-        /// <param name="dequeueOperationLoopInterval">The time to wait in between iterations of the worker thread which dequeues metric events and writes them to performance counters.</param>
+        /// <param name="bufferProcessingStrategy">Object which implements a processing strategy for the buffers (queues).</param>
         /// <param name="intervalMetricChecking">Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).</param>
         /// <param name="counterCreationDataCollection">A test (mock) counter creation data collection object.</param>
         /// <param name="counterCreationDataFactory">A test (mock) counter creation data factory object.</param>
@@ -88,8 +89,8 @@ namespace ApplicationMetrics
         /// <param name="performanceCounterFactory">A test (mock) performance counter factory object.</param>
         /// <param name="dateTime">A test (mock) DateTime object.</param>
         /// <param name="exceptionHandler">A test (mock) exception handler object.</param>
-        public PerformanceCounterMetricLoggerImplementation(string metricCategoryName, string metricCategoryDescription, int dequeueOperationLoopInterval, bool intervalMetricChecking, ICounterCreationDataCollection counterCreationDataCollection, ICounterCreationDataFactory counterCreationDataFactory, IPerformanceCounterCategory performanceCounterCategory, IPerformanceCounterFactory performanceCounterFactory, IDateTime dateTime, IExceptionHandler exceptionHandler)
-            : base(dequeueOperationLoopInterval, intervalMetricChecking, dateTime, exceptionHandler)
+        public PerformanceCounterMetricLoggerImplementation(string metricCategoryName, string metricCategoryDescription, IBufferProcessingStrategy bufferProcessingStrategy, bool intervalMetricChecking, ICounterCreationDataCollection counterCreationDataCollection, ICounterCreationDataFactory counterCreationDataFactory, IPerformanceCounterCategory performanceCounterCategory, IPerformanceCounterFactory performanceCounterFactory, IDateTime dateTime, IExceptionHandler exceptionHandler)
+            : base(bufferProcessingStrategy, intervalMetricChecking, dateTime, exceptionHandler)
         {
             InitialisePrivateMembers(metricCategoryName, metricCategoryDescription);
             this.counterCreationDataCollection = counterCreationDataCollection;
@@ -763,10 +764,12 @@ namespace ApplicationMetrics
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~PerformanceCounterMetricLoggerImplementation()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

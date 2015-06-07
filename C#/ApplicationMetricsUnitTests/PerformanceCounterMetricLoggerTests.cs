@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -67,7 +69,7 @@ namespace ApplicationMetricsUnitTests
             exceptionStorer = new ExceptionStorer();
             mockCounterCreationData = mocks.NewMock<ICounterCreationData>();
             workerThreadLoopCompleteSignal = new AutoResetEvent(false);
-            testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+            testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
         }
 
         [Test]
@@ -75,7 +77,7 @@ namespace ApplicationMetricsUnitTests
         {
             ArgumentException e = Assert.Throws<ArgumentException>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(" ", testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(" ", testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true);
             });
 
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'metricCategoryName' cannot be blank."));
@@ -87,7 +89,7 @@ namespace ApplicationMetricsUnitTests
         {
             ArgumentException e = Assert.Throws<ArgumentException>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, " ", 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, " ", new LoopingWorkerThreadBufferProcessor(10, true), true);
             });
 
             Assert.That(e.Message, NUnit.Framework.Is.StringStarting("Argument 'metricCategoryDescription' cannot be blank."));
@@ -257,7 +259,7 @@ namespace ApplicationMetricsUnitTests
 
             e = Assert.Throws<Exception>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
                 testPerformanceCounterMetricLogger.RegisterMetric(new LongNameMetric());
                 testPerformanceCounterMetricLogger.CreatePerformanceCounters();
             });
@@ -266,7 +268,7 @@ namespace ApplicationMetricsUnitTests
 
             e = Assert.Throws<Exception>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
                 testPerformanceCounterMetricLogger.RegisterMetric(new WhitespaceNameMetric());
                 testPerformanceCounterMetricLogger.CreatePerformanceCounters();
             });
@@ -275,7 +277,7 @@ namespace ApplicationMetricsUnitTests
 
             e = Assert.Throws<Exception>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
                 testPerformanceCounterMetricLogger.RegisterMetric(new DoubleQuoteNameMetric());
                 testPerformanceCounterMetricLogger.CreatePerformanceCounters();
             });
@@ -284,7 +286,7 @@ namespace ApplicationMetricsUnitTests
 
             e = Assert.Throws<Exception>(delegate
             {
-                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, 10, true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
+                testPerformanceCounterMetricLogger = new PerformanceCounterMetricLogger(testMetricCategoryName, testMetricCategoryDescription, new LoopingWorkerThreadBufferProcessor(10, true), true, mockCounterCreationDataCollection, mockCounterCreationDataFactory, mockPerformanceCounterCategory, mockPerformanceCounterFactory, mockDateTime, exceptionStorer);
                 testPerformanceCounterMetricLogger.RegisterMetric(new ControlCharacterNameMetric());
                 testPerformanceCounterMetricLogger.CreatePerformanceCounters();
             });
@@ -361,6 +363,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -404,6 +407,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -422,6 +426,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -444,6 +449,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -487,6 +493,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -504,6 +511,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -526,6 +534,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -543,6 +552,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.CreatePerformanceCounters();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -604,6 +614,7 @@ namespace ApplicationMetricsUnitTests
             testPerformanceCounterMetricLogger.Dispose();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -623,6 +634,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -644,6 +656,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -672,6 +685,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -706,6 +720,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -732,6 +747,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -781,6 +797,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -808,6 +825,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -842,6 +860,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -872,6 +891,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -921,6 +941,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -948,6 +969,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -979,6 +1001,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -1006,6 +1029,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -1044,6 +1068,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -1078,6 +1103,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -1110,6 +1136,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -1142,6 +1169,7 @@ namespace ApplicationMetricsUnitTests
             Thread.Sleep(50);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
     }
 }

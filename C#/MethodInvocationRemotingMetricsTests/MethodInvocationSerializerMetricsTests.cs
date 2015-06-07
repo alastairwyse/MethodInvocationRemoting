@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -67,6 +69,24 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
+        public void SerializeExceptionMetricsTest()
+        {
+            object[] methodParameters = new object[1] { (UInt16)123 };
+            MethodInvocation testMethodInvocation = new MethodInvocation("TestMethod", methodParameters);
+
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MethodInvocationSerializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MethodInvocationSerializeTime()));
+            }
+
+            SerializationException e = Assert.Throws<SerializationException>(delegate
+            {
+                testMethodInvocationSerializer.Serialize(testMethodInvocation);
+            });
+        }
+
+        [Test]
         public void DeserializeMetricsTest()
         {
             using (mocks.Ordered)
@@ -79,6 +99,21 @@ namespace MethodInvocationRemotingMetricsTests
             testMethodInvocationSerializer.Deserialize("<?xml version=\"1.0\" encoding=\"utf-8\"?><MethodInvocation><MethodName>TestMethod</MethodName><Parameters><Parameter><DataType>string</DataType><Data>abc</Data></Parameter><Parameter><DataType>integer</DataType><Data>123</Data></Parameter><Parameter /><Parameter><DataType>double</DataType><Data>4.5678899999999999e+002</Data></Parameter></Parameters><ReturnType /></MethodInvocation>");
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void DeserializeExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MethodInvocationDeserializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MethodInvocationDeserializeTime()));
+            }
+
+            DeserializationException e = Assert.Throws<DeserializationException>(delegate
+            {
+                testMethodInvocationSerializer.Deserialize("<?xml version=\"1.0\" encoding=\"utf-8\"?><MethodInvocationX></MethodInvocationX>");
+            });
         }
 
         [Test]
@@ -98,6 +133,23 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
+        public void SerializeReturnValueExceptionMetricsTest()
+        {
+            Dictionary<int, string> returnValue = new Dictionary<int, string>();
+
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new ReturnValueSerializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new ReturnValueSerializeTime()));
+            }
+
+            SerializationException e = Assert.Throws<SerializationException>(delegate
+            {
+                testMethodInvocationSerializer.SerializeReturnValue(returnValue);
+            });
+        }
+
+        [Test]
         public void DeserializeReturnValueMetricsTest()
         {
             using (mocks.Ordered)
@@ -114,6 +166,23 @@ namespace MethodInvocationRemotingMetricsTests
             testMethodInvocationSerializer.DeserializeReturnValue("<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnValue />");
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void DeserializeReturnValueExceptionMetricsTest()
+        {
+            string serializedReturnValue = "<?xml version=\"1.0\" encoding=\"utf-8\"?><ReturnValue><InvalidTag></InvalidTag></ReturnValue>";
+
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new ReturnValueDeserializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new ReturnValueDeserializeTime()));
+            }
+
+            DeserializationException e = Assert.Throws<DeserializationException>(delegate
+            {
+                testMethodInvocationSerializer.DeserializeReturnValue(serializedReturnValue);
+            });
         }
     }
 }

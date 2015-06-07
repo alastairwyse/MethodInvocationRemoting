@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -47,6 +47,7 @@ namespace MethodInvocationRemoting
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
         private MetricsUtilities metricsUtilities;
+        /// <summary>Indicates whether the object has been disposed.</summary>
         protected bool disposed;
         /// <summary>The string encoding to use when sending a message.</summary>
         protected Encoding stringEncoding = Encoding.UTF8;
@@ -493,43 +494,50 @@ namespace MethodInvocationRemoting
              *   IOException
              *   ObjectDisposedException
              */
-
-            if (sendException is System.IO.IOException)
-            {
-                logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
-
-                // If the TCP client is still connected, the situation cannot be handled so re-throw the exception
-                if (client.Connected == true)
-                {
-                    throw new Exception("Error sending message.  IOException occurred when sending message, but client is reporting that it is still connected.", sendException);
-                }
-
-                logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
-            }
-            else if ( (sendException is MessageAcknowledgementTimeoutException) ||
-                      (sendException is System.Net.Sockets.SocketException) ||
-                      (sendException is ObjectDisposedException) ||
-                      (sendException is InvalidOperationException) )
-            {
-                logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
-            }
-            else
-            {
-                throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
-            }
-
-            logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
-
-            client.Close();
-            AttemptConnect();
-            metricsUtilities.Increment(new TcpRemoteSenderReconnected());
             try
             {
-                EncodeAndSend(message);
+                if (sendException is System.IO.IOException)
+                {
+                    logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
+
+                    // If the TCP client is still connected, the situation cannot be handled so re-throw the exception
+                    if (client.Connected == true)
+                    {
+                        throw new Exception("Error sending message.  IOException occurred when sending message, but client is reporting that it is still connected.", sendException);
+                    }
+
+                    logger.Log(this, LogLevel.Warning, "Disconnected from TCP socket.");
+                }
+                else if ((sendException is MessageAcknowledgementTimeoutException) ||
+                          (sendException is System.Net.Sockets.SocketException) ||
+                          (sendException is ObjectDisposedException) ||
+                          (sendException is InvalidOperationException))
+                {
+                    logger.Log(this, LogLevel.Error, sendException.GetType().Name + " occurred whilst attempting to send message.", sendException);
+                }
+                else
+                {
+                    throw new Exception("Error sending message.  Unhandled exception while sending message.", sendException);
+                }
+
+                logger.Log(this, LogLevel.Warning, "Attempting to reconnect to TCP socket.");
+
+                client.Close();
+                AttemptConnect();
+                metricsUtilities.Increment(new TcpRemoteSenderReconnected());
+                try
+                {
+                    EncodeAndSend(message);
+                }
+                catch (Exception e)
+                {
+                    throw new Exception("Error sending message.  Failed to send message after reconnecting.", e);
+                }
             }
             catch (Exception e)
             {
-                throw new Exception("Error sending message.  Failed to send message after reconnecting.", e);
+                metricsUtilities.CancelBegin(new MessageSendTime());
+                throw e;
             }
         }
 
@@ -628,10 +636,12 @@ namespace MethodInvocationRemoting
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~TcpRemoteSender()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -50,7 +52,7 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
-        public void SerializeDeserializeSuccessTest()
+        public void SerializeDeserializeMetricsTest()
         {
             MethodInvocation testMethodInvocation = new MethodInvocation("TestMethod", new object[] { 1, "abc", true }, typeof(string));
 
@@ -72,7 +74,7 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
-        public void SerializeDeserializeReturnValueSuccessTest()
+        public void SerializeDeserializeReturnValueMetricsTest()
         {
             using (mocks.Ordered)
             {
@@ -89,6 +91,39 @@ namespace MethodInvocationRemotingMetricsTests
             testSoapMethodInvocationSerializer.DeserializeReturnValue(serializedReturnValue);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        // No unit test defined for throwing an exception (and calling method CancelBegin()) from methods Serialize() and SerializeReturnValue().
+        //   This is because the underlying SoapFormatter class inside the SoapMethodInvocationSerializer cannot be made to throw an exception using the public methods available on the SoapMethodInvocationSerializer class.
+
+        [Test]
+        public void DeserializeExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new MethodInvocationDeserializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new MethodInvocationDeserializeTime()));
+            }
+
+            DeserializationException e = Assert.Throws<DeserializationException>(delegate
+            {
+                testSoapMethodInvocationSerializer.Deserialize("InvalidSerializedMethodInvocation");
+            });
+        }
+
+        [Test]
+        public void DeserializeReturnValueExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new ReturnValueDeserializeTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new ReturnValueDeserializeTime()));
+            }
+
+            DeserializationException e = Assert.Throws<DeserializationException>(delegate
+            {
+                testSoapMethodInvocationSerializer.DeserializeReturnValue("InvalidSerializedMethodInvocation");
+            });
         }
     }
 }

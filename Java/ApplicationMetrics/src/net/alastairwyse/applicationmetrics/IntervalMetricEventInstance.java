@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -23,7 +23,9 @@ enum IntervalMetricEventTimePoint {
     /** The start of the interval metric event. */
     Start, 
     /** The completion of the interval metric event. */
-    End
+    End, 
+    /** The cancellation of a previously started interval metric event. */
+    Cancel
 }
 
 /**

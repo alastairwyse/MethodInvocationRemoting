@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -97,6 +97,14 @@ namespace SampleApplication5
             foreach (IMetricLogger currentLogger in loggerList)
             {
                 currentLogger.End(intervalMetric);
+            }
+        }
+
+        public void CancelBegin(IntervalMetric intervalMetric)
+        {
+            foreach (IMetricLogger currentLogger in loggerList)
+            {
+                currentLogger.CancelBegin(intervalMetric);
             }
         }
     }

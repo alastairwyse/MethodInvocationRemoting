@@ -1,5 +1,5 @@
 /*
- * Copyright 2013 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -41,9 +41,7 @@ namespace MethodInvocationRemoting
         private IApplicationLogger logger;
         private LoggingUtilities loggingUtilities;
         private MetricsUtilities metricsUtilities;
-        /// <summary>
-        /// Indicates whether the object has been disposed.
-        /// </summary>
+        /// <summary>Indicates whether the object has been disposed.</summary>
         protected bool disposed;
 
         //------------------------------------------------------------------------------
@@ -177,6 +175,7 @@ namespace MethodInvocationRemoting
             }
             catch (Exception e)
             {
+                metricsUtilities.CancelBegin(new MessageSendTime());
                 throw new Exception("Error sending message.", e);
             }
 
@@ -196,10 +195,12 @@ namespace MethodInvocationRemoting
             GC.SuppressFinalize(this);
         }
 
+        #pragma warning disable 1591
         ~FileRemoteSender()
         {
             Dispose(false);
         }
+        #pragma warning restore 1591
 
         //------------------------------------------------------------------------------
         //

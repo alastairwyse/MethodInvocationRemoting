@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -19,7 +19,6 @@ package net.alastairwyse.applicationmetrics;
 import java.lang.Thread.*;
 import java.text.*;
 import java.util.*;
-import java.util.concurrent.*;
 
 import net.alastairwyse.operatingsystemabstraction.*;
 
@@ -34,27 +33,35 @@ public class ConsoleMetricLogger extends MetricAggregateLogger {
     
     /**
      * Initialises a new instance of the ConsoleMetricLogger class.
-     * @param dequeueOperationLoopInterval  The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the console.
-     * @param intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
+     * This constructor defaults to using the LoopingWorkerThreadBufferProcessor as the buffer processing strategy, and is maintained for backwards compatibility.
+     * @param  dequeueOperationLoopInterval  The time to wait (in milliseconds) between iterations of the worker thread which dequeues metric events and writes them to the console.
+     * @param  intervalMetricChecking        Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  exceptionHandler              Handler for any uncaught exceptions occurring on the worker thread.
      */
     public ConsoleMetricLogger(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler);
+        this(new LoopingWorkerThreadBufferProcessor(dequeueOperationLoopInterval, exceptionHandler), intervalMetricChecking);
+    }
+    
+    /**
+     * Initialises a new instance of the ConsoleMetricLogger class.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     */
+    public ConsoleMetricLogger(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking) {
+        super(bufferProcessingStrategy, intervalMetricChecking);
         printStream = new PrintStream();
     }
     
     /**
      * Initialises a new instance of the ConsoleMetricLogger class.  
      * <b>Note</b> this is an additional constructor to facilitate unit tests, and should not be used to instantiate the class under normal conditions.
-     * @param dequeueOperationLoopInterval        The time to wait in between iterations of the worker thread which dequeues metric events and writes them to the console.
-     * @param intervalMetricChecking              Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
-     * @param exceptionHandler                    Handler for any uncaught exceptions occurring on the worker thread.
-     * @param printStream                         A test (mock) IPrintStream object.
-     * @param calendarProvider                    A test (mock) ICalendarProvider object.
-     * @param dequeueOperationLoopCompleteSignal  Notifies test code that an iteration of the worker thread which dequeues and processes metric events has completed.
+     * @param  bufferProcessingStrategy  Object which implements a processing strategy for the buffers (queues).
+     * @param  intervalMetricChecking    Specifies whether an exception should be thrown if the correct order of interval metric logging is not followed (e.g. End() method called before Begin()).
+     * @param  printStream               A test (mock) IPrintStream object.
+     * @param  calendarProvider          A test (mock) ICalendarProvider object.
      */
-    public ConsoleMetricLogger(int dequeueOperationLoopInterval, boolean intervalMetricChecking, UncaughtExceptionHandler exceptionHandler, IPrintStream printStream, ICalendarProvider calendarProvider, CountDownLatch dequeueOperationLoopCompleteSignal) {
-        super(dequeueOperationLoopInterval, intervalMetricChecking, exceptionHandler, calendarProvider, dequeueOperationLoopCompleteSignal);
+    public ConsoleMetricLogger(IBufferProcessingStrategy bufferProcessingStrategy, boolean intervalMetricChecking, IPrintStream printStream, ICalendarProvider calendarProvider) {
+        super(bufferProcessingStrategy, intervalMetricChecking, calendarProvider);
         this.printStream = printStream;
     }
 

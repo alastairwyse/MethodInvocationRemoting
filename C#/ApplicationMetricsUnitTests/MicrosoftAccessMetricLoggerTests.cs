@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -45,6 +47,7 @@ namespace ApplicationMetricsUnitTests
         const string accessConnectionStringPrefix = "Provider=Microsoft.Jet.OLEDB.4.0;Data Source=";
 
         private Mockery mocks;
+        private IBufferProcessingStrategy mockBufferProcessingStrategy;
         private IOleDbConnection mockDbConnection;
         private IOleDbCommand mockDbCommand;
         private IDateTime mockDateTime;
@@ -58,12 +61,13 @@ namespace ApplicationMetricsUnitTests
         protected void SetUp()
         {
             mocks = new Mockery();
+            mockBufferProcessingStrategy = mocks.NewMock<IBufferProcessingStrategy>();
             mockDbConnection = mocks.NewMock<IOleDbConnection>();
             mockDbCommand = mocks.NewMock<IOleDbCommand>();
             mockDateTime = mocks.NewMock<IDateTime>();
             exceptionStorer = new ExceptionStorer();
             workerThreadLoopCompleteSignal = new AutoResetEvent(false);
-            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, 10, true, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
+            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, new LoopingWorkerThreadBufferProcessor(10, true), true, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
         }
 
         [Test]
@@ -141,6 +145,7 @@ namespace ApplicationMetricsUnitTests
             testMicrosoftAccessMetricLogger.Connect();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -187,6 +192,7 @@ namespace ApplicationMetricsUnitTests
             testMicrosoftAccessMetricLogger.Disconnect();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -245,6 +251,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -301,6 +308,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -357,6 +365,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -404,7 +413,7 @@ namespace ApplicationMetricsUnitTests
 
             mocks.VerifyAllExpectationsHaveBeenMet();
             Assert.IsNotNull(exceptionStorer.StoredException);
-            Assert.IsInstanceOf(typeof(Exception), exceptionStorer.StoredException);
+            Assert.IsInstanceOf(typeof(InvalidOperationException), exceptionStorer.StoredException);
             Assert.That(exceptionStorer.StoredException.Message, NUnit.Framework.Is.StringStarting("Received duplicate begin 'MessageProcessingTime' metrics."));
         }
 
@@ -424,8 +433,148 @@ namespace ApplicationMetricsUnitTests
 
             mocks.VerifyAllExpectationsHaveBeenMet();
             Assert.IsNotNull(exceptionStorer.StoredException);
-            Assert.IsInstanceOf(typeof(Exception), exceptionStorer.StoredException);
+            Assert.IsInstanceOf(typeof(InvalidOperationException), exceptionStorer.StoredException);
             Assert.That(exceptionStorer.StoredException.Message, NUnit.Framework.Is.StringStarting("Received end 'MessageProcessingTime' with no corresponding start interval metric."));
+        }
+
+        [Test]
+        public void CancelBeginWithNoBeginAndQueuedMetrics()
+        {
+            String expectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 06, 19, 36, 07, 567, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+
+            // Tests that an exception is thrown if the CancelBegin() method is called without a preceding Begin() method having been called for the same interval metric event
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 012)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 579)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 731)));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(expectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+            }
+                        
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNotNull(exceptionStorer.StoredException);
+            Assert.IsInstanceOf(typeof(InvalidOperationException), exceptionStorer.StoredException);
+            Assert.That(exceptionStorer.StoredException.Message, NUnit.Framework.Is.StringStarting("Received cancel 'MessageProcessingTime' with no corresponding start interval metric."));
+         }
+
+        [Test]
+        public void CancelBeginWithNoBeginAndNoQueuedMetrics()
+        {
+            // Tests that an exception is thrown if the CancelBegin() method is called without a preceding Begin() where no metric events are currently queued
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2014, 6, 14, 12, 45, 50, 31)), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNotNull(exceptionStorer.StoredException);
+            Assert.IsInstanceOf(typeof(InvalidOperationException), exceptionStorer.StoredException);
+            Assert.That(exceptionStorer.StoredException.Message, NUnit.Framework.Is.StringStarting("Received cancel 'MessageProcessingTime' with no corresponding start interval metric."));
+        }
+
+        [Test]
+        public void BeginEndBufferProcessingBetweenBeginAndEndSuccessTests()
+        {
+            // Tests that interval metrics are processed correctly when the buffers/queues are processed in between calls to Begin() and End().
+            //   This test is actually testing functionality in class MetricLoggerBuffer
+            String firstExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 4, 25, 17, 32, 14, 68, new TestDiskReadTimeMetric().Name, testMetricCategoryName);
+            String secondExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 4, 25, 17, 32, 14, 69, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+            
+            using (mocks.Ordered)
+            {
+                Expect.On(mockBufferProcessingStrategy).EventAdd("BufferProcessed");
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 4, 25, 17, 32, 14, 000)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 4, 25, 17, 32, 14, 034)));
+                // Set expectations for first raising of the BufferProcessed event
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyCountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyAmountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyStatusMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 4, 25, 17, 32, 14, 068)));
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBuffered").WithNoArguments();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 4, 25, 17, 32, 14, 103)));
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBuffered").WithNoArguments();
+                // Set expectations for second raising of the BufferProcessed event
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyCountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyAmountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyStatusMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(firstExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(secondExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1));
+            }
+
+            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, mockBufferProcessingStrategy, true, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestDiskReadTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            Fire.On(mockBufferProcessingStrategy).Event("BufferProcessed").With(mockBufferProcessingStrategy, EventArgs.Empty);
+            testMicrosoftAccessMetricLogger.End(new TestDiskReadTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            Fire.On(mockBufferProcessingStrategy).Event("BufferProcessed").With(mockBufferProcessingStrategy, EventArgs.Empty);
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
+        }
+
+        [Test]
+        public void BeginCancelBeginBufferProcessingBetweenBeginAndCancelBeginSuccessTests()
+        {
+            // Tests that CancelBegin() method works correctly when the interval metric event being cancelled has been moved to the start interval metric event dictionary object as the result of a BufferProcessed event being raised.
+            //   This test is actually testing functionality in class MetricLoggerBuffer
+            String expectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 06, 19, 36, 07, 567, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+
+            using (mocks.Ordered)
+            {
+                Expect.On(mockBufferProcessingStrategy).EventAdd("BufferProcessed");
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 002)));
+                // Set expectations for first raising of the BufferProcessed event
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyCountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyAmountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyStatusMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 007)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 012)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 579)));
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBuffered").WithNoArguments();
+                // Set expectations for second raising of the BufferProcessed event
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyCountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyAmountMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyStatusMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockBufferProcessingStrategy).Method("NotifyIntervalMetricEventBufferCleared").WithNoArguments();
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(expectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1));
+            }
+
+            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, mockBufferProcessingStrategy, true, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            Fire.On(mockBufferProcessingStrategy).Event("BufferProcessed").With(mockBufferProcessingStrategy, EventArgs.Empty);
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            Fire.On(mockBufferProcessingStrategy).Event("BufferProcessed").With(mockBufferProcessingStrategy, EventArgs.Empty);
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -464,6 +613,7 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
@@ -495,13 +645,14 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]
         public void BeginEndNoCheckingSuccessTests()
         {
-            // Tests the class with parameter 'intervalMetricChecking' set to false;
-            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, 10, false, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
+            // Tests the Begin() and End() methods of the class with parameter 'intervalMetricChecking' set to false
+            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, new LoopingWorkerThreadBufferProcessor(10, true), false, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
 
             String firstExpectedSqlStatement = CreateIntervalMetricInsertSql(2014, 6, 14, 12, 45, 31, 3600001, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
             String secondExpectedSqlStatement = CreateIntervalMetricInsertSql(2014, 6, 15, 23, 58, 47, 1035, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
@@ -536,6 +687,173 @@ namespace ApplicationMetricsUnitTests
             workerThreadLoopCompleteSignal.WaitOne();
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void CancelBeginSuccessTests()
+        {
+            String expectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 06, 19, 36, 07, 567, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 002)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 005)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 012)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 579)));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(expectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
+        }
+
+        [Test]
+        public void CancelBeginQueueMaintenanceSuccessTests()
+        {
+            // Tests that the rebuilding of the interval metric queue performed by the CancelBegin() method preserves the queue order for the interval metrics that are not cancelled
+            //   Note this test was created specifically to test a previous implementation of MetricLoggerBuffer where cancelling of an interval metric was performed by the main thread.  
+            //   In the current implementation of MetricLoggerBuffer, cancelling is performed by the buffer processing strategy worker thread, and hence this test is equivalent to test CancelBeginSuccessTests().
+            //   However, it will be kept for extra thoroughness of testing.
+            String firstExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 6, 8, 09, 56, 121002, new TestDiskReadTimeMetric().Name, testMetricCategoryName);
+            String secondExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 6, 8, 10, 5, 121109, new TestDiskWriteTimeMetric().Name, testMetricCategoryName);
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 09, 56, 100)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 10, 1, 200)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 10, 5, 300)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 10, 6, 301)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 11, 57, 102)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 6, 8, 12, 6, 409)));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(firstExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(secondExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestDiskReadTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestDiskWriteTimeMetric());
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestDiskReadTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestDiskWriteTimeMetric());
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
+
+        }
+
+        [Test]
+        public void CancelBeginLongQueueSuccessTests()
+        {
+            // Tests the case where several successive start and end interval metric events exist in the interval metric queue when CancelBegin() is called
+            //   Ensures only the most recent end interval metric is removed from the queue
+            //   Note this test was created specifically to test a previous implementation of MetricLoggerBuffer where cancelling of an interval metric was performed by the main thread.  
+            //   In the current implementation of MetricLoggerBuffer, cancelling is performed by the buffer processing strategy worker thread, and hence this test is equivalent to test CancelBeginSuccessTests().
+            //   However, it will be kept for extra thoroughness of testing.
+            String firstExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 12, 22, 49, 01, 203, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+            String secondExpectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 12, 22, 49, 52, 304, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 01, 100)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 01, 303)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 52, 400)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 52, 704)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 59, 800)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 49, 59, 905)));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(firstExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(secondExpectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
+        }
+
+        [Test]
+        public void CancelBeginStartIntervalMetricInEventStoreSuccessTests()
+        {
+            // Tests the case where CancelBegin() is called, and the start interval metric to cancel is stored in the start interval metric event store
+            //   Expects that the start interval metric is correctly removed from the start interval metric event store
+            //   Note this test was created specifically to test a previous implementation of MetricLoggerBuffer where cancelling of an interval metric was performed by the main thread.  
+            //   In the current implementation of MetricLoggerBuffer, cancelling is performed by the buffer processing strategy worker thread, and hence this test is equivalent to test CancelBeginSuccessTests().
+            //   However, it will be kept for extra thoroughness of testing.
+            String expectedSqlStatement = CreateIntervalMetricInsertSql(2015, 5, 12, 22, 57, 01, 506, new TestMessageProcessingTimeMetric().Name, testMetricCategoryName);
+
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 57, 01, 100)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 57, 01, 606)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 57, 02, 400)));
+                Expect.Once.On(mockDbCommand).SetProperty("CommandText").To(expectedSqlStatement.ToString());
+                Expect.Once.On(mockDbCommand).Method("ExecuteNonQuery").WithNoArguments().Will(Return.Value(1), Signal.EventWaitHandle(workerThreadLoopCompleteSignal));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 57, 03, 513)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 12, 22, 57, 03, 704)));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            // Due to calling Start() the preceding start interval metric should be moved to the start interval metric event store
+            testMicrosoftAccessMetricLogger.Start();
+            workerThreadLoopCompleteSignal.WaitOne();
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
+        }
+
+        [Test]
+        public void CancelBeginNoCheckingSuccessTests()
+        {
+            // Tests that a call to CancelBegin() with no preceding call to Begin() for the same metric with 'intervalMetricChecking' set to false, will not throw an exception
+            testMicrosoftAccessMetricLogger = new MicrosoftAccessMetricLogger(testDbFilePath, testMetricCategoryName, new LoopingWorkerThreadBufferProcessor(10, true), false, mockDbConnection, mockDbCommand, mockDateTime, exceptionStorer);
+            
+            using (mocks.Ordered)
+            {
+                SetConnectExpectations();
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 012)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 579)));
+                Expect.Once.On(mockDateTime).GetProperty("UtcNow").Will(Return.Value(new System.DateTime(2015, 5, 06, 19, 36, 07, 645)));
+            }
+
+            testMicrosoftAccessMetricLogger.Connect();
+            testMicrosoftAccessMetricLogger.Begin(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.End(new TestMessageProcessingTimeMetric());
+            testMicrosoftAccessMetricLogger.CancelBegin(new TestDiskReadTimeMetric());
+
+            mocks.VerifyAllExpectationsHaveBeenMet();
+            Assert.IsNull(exceptionStorer.StoredException);
         }
 
         [Test]

@@ -26,20 +26,20 @@ public interface IFileWriter {
 
     /**
      * Writes a string.
-     * @param  str          String to be written.
-     * @throws IOException  If an I/O error occurs.
+     * @param   str          String to be written.
+     * @throws  IOException  If an I/O error occurs.
      */
     void write(String str) throws IOException;
     
     /**
      * Flushes the stream.
-     * @throws IOException  If an I/O error occurs.
+     * @throws  IOException  If an I/O error occurs.
      */
     void flush() throws IOException;
     
     /**
      * Closes the stream, flushing it first. Once the stream has been closed, further write() or flush() invocations will cause an IOException to be thrown. Closing a previously closed stream has no effect.
-     * @throws IOException
+     * @throws  IOException  If an I/O error occurs.
      */
     void close() throws IOException;
 }

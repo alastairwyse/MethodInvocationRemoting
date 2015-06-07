@@ -1,5 +1,5 @@
 /*
- * Copyright 2014 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -13,6 +13,8 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
+#pragma warning disable 1591
 
 using System;
 using System.Collections.Generic;
@@ -80,6 +82,56 @@ namespace MethodInvocationRemotingMetricsTests
         }
 
         [Test]
+        public void InvokeMethodVoidMethodInvocationExceptionMetricsTest()
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            ArgumentException e = Assert.Throws<ArgumentException>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeMethod(new MethodInvocation("TestMethod"));
+            });
+        }
+
+        [Test]
+        public void InvokeMethodSerializationExceptionMetricsTest()
+        {
+            Expect.Once.On(mockMethodInvocationSerializer).Method("Serialize").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Serialization Failure")));
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
+            });
+        }
+
+        [Test]
+        public void InvokeMethodReturnValueDeserializationExceptionMetricsTest()
+        {
+            Expect.Once.On(mockMethodInvocationSerializer).Method("Serialize").WithAnyArguments().Will(Return.Value(testSerializedMethodInvocation));
+            Expect.Once.On(mockRemoteReceiver).Method("Receive").WithAnyArguments().Will(Return.Value(testSerializedReturnValue));
+            Expect.Once.On(mockMethodInvocationSerializer).Method("DeserializeReturnValue").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Deserialization Failure")));
+            Expect.AtLeastOnce.On(mockRemoteSender);
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeMethod(testMethodInvocation);
+            });
+        }
+
+        [Test]
         public void InvokeVoidMethodMetricsTest()
         {
             testMethodInvocation = new MethodInvocation("TestMethod");
@@ -90,17 +142,69 @@ namespace MethodInvocationRemotingMetricsTests
             Expect.AtLeastOnce.On(mockRemoteSender);
             using (mocks.Ordered)
             {
-                using (mocks.Ordered)
-                {
-                    Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
-                    Expect.Once.On(mockMetricLogger).Method("End").With(IsMetric.Equal(new RemoteMethodSendTime()));
-                    Expect.Once.On(mockMetricLogger).Method("Increment").With(IsMetric.Equal(new RemoteMethodSent()));
-                }
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("End").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("Increment").With(IsMetric.Equal(new RemoteMethodSent()));
             }
 
             testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
 
             mocks.VerifyAllExpectationsHaveBeenMet();
+        }
+
+        [Test]
+        public void InvokeVoidMethodNonVoidMethodInvocationExceptionMetricsTest() 
+        {
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            ArgumentException e = Assert.Throws<ArgumentException>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            });
+        }
+
+        [Test]
+        public void InvokeVoidMethodSerializationExceptionMetricsTest()
+        {
+            testMethodInvocation = new MethodInvocation("TestMethod");
+
+            Expect.Once.On(mockMethodInvocationSerializer).Method("Serialize").WithAnyArguments().Will(Throw.Exception(new Exception("Mock Serialization Failure")));
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            });
+        }
+
+        [Test]
+        public void InvokeVoidMethodNonVoidReturnValueExceptionMetricsTest()
+        {
+            testMethodInvocation = new MethodInvocation("TestMethod");
+
+            Expect.Once.On(mockMethodInvocationSerializer).Method("Serialize").WithAnyArguments().Will(Return.Value(testSerializedMethodInvocation));
+            Expect.Once.On(mockRemoteReceiver).Method("Receive").WithAnyArguments().Will(Return.Value(testVoidSerializedReturnValue));
+            // Return a non-void return value which will throw an exception
+            Expect.Once.On(mockMethodInvocationSerializer).GetProperty("VoidReturnValue").Will(Return.Value(testSerializedReturnValue));
+            Expect.AtLeastOnce.On(mockRemoteSender);
+            using (mocks.Ordered)
+            {
+                Expect.Once.On(mockMetricLogger).Method("Begin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+                Expect.Once.On(mockMetricLogger).Method("CancelBegin").With(IsMetric.Equal(new RemoteMethodSendTime()));
+            }
+
+            Exception e = Assert.Throws<Exception>(delegate
+            {
+                testMethodInvocationRemoteSender.InvokeVoidMethod(testMethodInvocation);
+            });
         }
     }
 }
