@@ -1,5 +1,5 @@
 /*
- * Copyright 2015 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
+ * Copyright 2016 Alastair Wyse (http://www.oraclepermissiongenerator.net/methodinvocationremoting/)
  * 
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -176,7 +176,7 @@ namespace MethodInvocationRemoting
             catch (Exception e)
             {
                 metricsUtilities.CancelBegin(new ReturnValueSerializeTime());
-                throw e;
+                throw;
             }
 
             metricsUtilities.End(new ReturnValueSerializeTime());
@@ -201,7 +201,7 @@ namespace MethodInvocationRemoting
             catch (Exception e)
             {
                 metricsUtilities.CancelBegin(new ReturnValueDeserializeTime());
-                throw e;
+                throw;
             }
 
             metricsUtilities.End(new ReturnValueDeserializeTime());
