@@ -15,4 +15,4 @@ Both the C# and Java projects include extensive unit tests to allow for easier e
 
 Detailed logging and instrumentation is available from all major classes in MethodInvocationRemoting using the ApplicationLogging and ApplicationMetrics projects. These two projects are decoupled from MethodInvocationRemoting (interaction is through clearly defined interfaces) and are standalone frameworks in their own right with multiple implementations, which could easily be utilized by other client applications and frameworks.
 
-For detailed information including explanation of the operation of the classes and sample applications, see http://www.oraclepermissiongenerator.net/methodinvocationremoting/
+For detailed information including explanation of the operation of the classes and sample applications, see http://www.alastairwyse.net/methodinvocationremoting/
